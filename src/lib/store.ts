@@ -61,6 +61,7 @@ export interface Resource {
   name: string
   type: string
   url: string
+  originalUrl?: string | null
   size?: number
   mimeType?: string
   createdAt: string
@@ -103,6 +104,10 @@ interface AppState {
   // UI State
   sidebarOpen: boolean
   resourcePanelOpen: boolean
+  pageBg: string
+  darkMode: boolean
+  personalApiKey: string | null
+  teamApiKey: string | null
 
   // Actions
   setUser: (user: User | null) => void
@@ -120,6 +125,10 @@ interface AppState {
   setInviteCode: (code: string | null) => void
   setSidebarOpen: (open: boolean) => void
   setResourcePanelOpen: (open: boolean) => void
+  setPageBg: (bg: string) => void
+  setDarkMode: (dark: boolean) => void
+  setPersonalApiKey: (key: string | null) => void
+  setTeamApiKey: (key: string | null) => void
   reset: () => void
 }
 
@@ -152,6 +161,10 @@ export const useAppStore = create<AppState>()(
       // UI
       sidebarOpen: true,
       resourcePanelOpen: false,
+      pageBg: typeof window !== 'undefined' ? localStorage.getItem('script-editor-bg') || 'white' : 'white',
+      darkMode: false,
+      personalApiKey: null,
+      teamApiKey: null,
 
       // Actions
       setUser: (user) => set({ user }),
@@ -177,6 +190,13 @@ export const useAppStore = create<AppState>()(
       setInviteCode: (code) => set({ inviteCode: code }),
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       setResourcePanelOpen: (open) => set({ resourcePanelOpen: open }),
+      setPageBg: (bg) => {
+        try { localStorage.setItem('script-editor-bg', bg) } catch {}
+        set({ pageBg: bg })
+      },
+      setDarkMode: (dark) => set({ darkMode: dark }),
+      setPersonalApiKey: (key) => set({ personalApiKey: key }),
+      setTeamApiKey: (key) => set({ teamApiKey: key }),
       reset: () => set({
         user: null,
         token: null,

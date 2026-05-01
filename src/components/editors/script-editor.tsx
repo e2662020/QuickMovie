@@ -1,13 +1,11 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { useAppStore, type StoryElement, type BoardFile } from '@/lib/store'
+import { useAppStore, type StoryElement } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
 import {
@@ -44,11 +42,10 @@ import {
   Keyboard,
   ChevronDown,
   Sparkles,
+  Clock,
+  Hash,
+  Clapperboard,
 } from 'lucide-react'
-
-// ═══════════════════════════════════════════════════════════════════
-// Types
-// ═══════════════════════════════════════════════════════════════════
 
 export type BlockType =
   | 'scene_heading'
@@ -62,7 +59,6 @@ export interface ScriptBlock {
   id: string
   type: BlockType
   content: string
-  /** Optional: linked story element id (character or scene) */
   linkedElementId?: string
 }
 
@@ -72,10 +68,6 @@ export interface ScriptData {
   version: string
   blocks: ScriptBlock[]
 }
-
-// ═══════════════════════════════════════════════════════════════════
-// Constants
-// ═══════════════════════════════════════════════════════════════════
 
 const BLOCK_TYPES: {
   value: BlockType
@@ -179,9 +171,15 @@ const DEFAULT_SCRIPT: ScriptData = {
   ],
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// Helpers
-// ═══════════════════════════════════════════════════════════════════
+type PageBg = 'white' | 'black' | 'blue' | 'green' | 'yellow'
+
+const PAGE_BG_OPTIONS: { value: PageBg; label: string; color: string; dark: boolean }[] = [
+  { value: 'white', label: '白色', color: '#ffffff', dark: false },
+  { value: 'black', label: '黑色', color: '#1a1a1a', dark: true },
+  { value: 'blue', label: '淡蓝', color: '#eef6fc', dark: false },
+  { value: 'green', label: '淡绿', color: '#edf7ed', dark: false },
+  { value: 'yellow', label: '淡黄', color: '#fef9e7', dark: false },
+]
 
 function generateId(): string {
   return `blk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -211,19 +209,16 @@ function parseScriptContent(content: string | undefined): ScriptData {
   }
 }
 
-/** Extract text from HTML content (from contentEditable) */
 function extractText(html: string): string {
   const tmp = document.createElement('div')
   tmp.innerHTML = html
   return tmp.textContent || ''
 }
 
-/** Render **bold** markdown in text as <strong> HTML */
 function renderBoldMarkdown(text: string): string {
   return text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
 }
 
-/** Render a script block's content with formatting */
 function renderBlockContent(content: string, isEmphasis?: boolean): string {
   const withBold = renderBoldMarkdown(content)
   if (isEmphasis) {
@@ -232,7 +227,6 @@ function renderBlockContent(content: string, isEmphasis?: boolean): string {
   return withBold
 }
 
-/** Get the character name above a dialogue block */
 function getPrecedingCharacterName(
   blocks: ScriptBlock[],
   currentIndex: number
@@ -248,9 +242,20 @@ function getPrecedingCharacterName(
   return ''
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// Auto-Complete Popup Component
-// ═══════════════════════════════════════════════════════════════════
+function countScenes(blocks: ScriptBlock[]): number {
+  return blocks.filter(b => b.type === 'scene_heading').length
+}
+
+function estimateDuration(blocks: ScriptBlock[]): string {
+  let chars = 0
+  blocks.forEach(b => {
+    if (b.type === 'dialogue' || b.type === 'action') {
+      chars += b.content.length
+    }
+  })
+  const minutes = Math.max(1, Math.round(chars / 250))
+  return `${minutes} 分钟`
+}
 
 interface AutocompleteOption {
   id: string
@@ -290,9 +295,9 @@ function AutocompletePopup({
   useEffect(() => {
     if (prevQueryRef.current !== query) {
       prevQueryRef.current = query
-      setSelectedIndex(0) // eslint-disable-line react-hooks/set-state-in-effect
+      setSelectedIndex(0)
     }
-  }, [query]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [query])
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -320,27 +325,27 @@ function AutocompletePopup({
   return (
     <div
       ref={containerRef}
-      className="fixed z-[100] w-64 rounded-md border bg-popover p-1 shadow-lg"
+      className="fixed z-[100] w-72 rounded-lg border border-gray-200 bg-white p-1 shadow-lg"
       style={{ top: position.top + 28, left: position.left }}
     >
-      <div className="max-h-[200px] overflow-y-auto">
+      <div className="max-h-[220px] overflow-y-auto scrollbar-thin">
         {filtered.map((option, idx) => (
           <button
             key={option.id}
             type="button"
             className={cn(
-              'flex w-full items-center gap-2 rounded-sm px-2.5 py-1.5 text-sm transition-colors text-left',
+              'flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors text-left',
               idx === selectedIndex
-                ? 'bg-accent text-accent-foreground'
-                : 'hover:bg-accent/50'
+                ? 'bg-gray-100 text-gray-900'
+                : 'text-gray-600 hover:bg-gray-50'
             )}
             onClick={() => onSelect(option)}
             onMouseEnter={() => setSelectedIndex(idx)}
           >
             {option.type === 'character' ? (
-              <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <Users className="h-3.5 w-3.5 shrink-0 text-gray-400" />
             ) : (
-              <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-gray-400" />
             )}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
@@ -351,24 +356,20 @@ function AutocompletePopup({
                 <span className="truncate font-medium">{option.name}</span>
               </div>
               {option.description && (
-                <span className="truncate text-xs text-muted-foreground">
+                <span className="truncate text-xs text-gray-400">
                   {option.description}
                 </span>
               )}
             </div>
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 font-medium">
               {option.type === 'character' ? '角色' : '场景'}
-            </Badge>
+            </span>
           </button>
         ))}
       </div>
     </div>
   )
 }
-
-// ═══════════════════════════════════════════════════════════════════
-// Element Info Popover Component
-// ═══════════════════════════════════════════════════════════════════
 
 function ElementInfoPopover({
   element,
@@ -388,9 +389,9 @@ function ElementInfoPopover({
               style={{ backgroundColor: element.color || '#888' }}
             />
             <h4 className="text-sm font-semibold">{element.name}</h4>
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 ml-auto">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 font-medium ml-auto">
               {element.type === 'character' ? '角色' : '场景'}
-            </Badge>
+            </span>
           </div>
           {element.content && (
             <p className="text-xs text-muted-foreground leading-relaxed line-clamp-4">
@@ -409,10 +410,6 @@ function ElementInfoPopover({
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// Command Palette Dialog
-// ═══════════════════════════════════════════════════════════════════
-
 function BlockCommandPalette({
   open,
   onOpenChange,
@@ -425,7 +422,9 @@ function BlockCommandPalette({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md p-0 overflow-hidden">
-        <Command className="[&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-2.5 [&_[cmdk-item]]:gap-2 [&_[cmdk-item]_svg]:h-4 [&_[cmdk-item]_svg]:w-4">
+        <DialogTitle className="sr-only">选择块类型</DialogTitle>
+        <DialogDescription className="sr-only">选择要插入的剧本块类型</DialogDescription>
+        <Command className="[&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-3 [&_[cmdk-item]]:py-3 [&_[cmdk-item]]:gap-3 [&_[cmdk-item]_svg]:h-4 [&_[cmdk-item]_svg]:w-4">
           <CommandInput placeholder="选择块类型..." />
           <CommandList>
             <CommandEmpty>未找到块类型</CommandEmpty>
@@ -439,7 +438,7 @@ function BlockCommandPalette({
                     onOpenChange(false)
                   }}
                 >
-                  {bt.icon}
+                  <span className="text-gray-500">{bt.icon}</span>
                   <div className="flex-1">
                     <div className="text-sm font-medium">{bt.label}</div>
                     <div className="text-xs text-muted-foreground">
@@ -447,7 +446,7 @@ function BlockCommandPalette({
                     </div>
                   </div>
                   {bt.shortcut && (
-                    <span className="text-[10px] text-muted-foreground/60 ml-2">
+                    <span className="text-[10px] text-muted-foreground/50 ml-2 font-mono">
                       {bt.shortcut}
                     </span>
                   )}
@@ -460,10 +459,6 @@ function BlockCommandPalette({
     </Dialog>
   )
 }
-
-// ═══════════════════════════════════════════════════════════════════
-// Script Block Component
-// ═══════════════════════════════════════════════════════════════════
 
 interface ScriptBlockEditorProps {
   block: ScriptBlock
@@ -483,6 +478,16 @@ interface ScriptBlockEditorProps {
   onToggleEmphasis: (blockId: string) => void
   onOpenCommandPalette: (afterBlockId: string) => void
   storyElements: StoryElement[]
+  isDarkBg: boolean
+}
+
+const BLOCK_LAYOUT_STYLES: Record<BlockType, string> = {
+  scene_heading: 'font-bold uppercase text-center tracking-wider text-sm leading-relaxed',
+  action: 'text-sm leading-7',
+  character: 'uppercase text-center font-semibold text-sm tracking-wider',
+  dialogue: 'text-center text-sm leading-relaxed pl-12 pr-12',
+  parenthetical: 'text-center text-xs italic leading-relaxed pl-16 pr-16',
+  transition: 'text-right uppercase text-xs tracking-widest font-semibold',
 }
 
 function ScriptBlockEditor({
@@ -498,17 +503,16 @@ function ScriptBlockEditor({
   onToggleEmphasis,
   onOpenCommandPalette,
   storyElements,
+  isDarkBg,
 }: ScriptBlockEditorProps) {
   const editableRef = useRef<HTMLDivElement>(null)
-  const lineCountRef = useRef<HTMLDivElement>(null)
-  const [lineCount, setLineCount] = useState(1)
+  const [isFocused, setIsFocused] = useState(false)
 
   const precedingCharName =
     block.type === 'dialogue'
       ? getPrecedingCharacterName(blocks, index)
       : ''
 
-  // Sync content to editable on external changes
   useEffect(() => {
     if (editableRef.current && document.activeElement !== editableRef.current) {
       editableRef.current.innerHTML = renderBlockContent(
@@ -516,9 +520,8 @@ function ScriptBlockEditor({
         emphasisBlocks.has(block.id)
       )
     }
-  }, [block.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [block.id])
 
-  // Initialize content
   useEffect(() => {
     if (editableRef.current) {
       editableRef.current.innerHTML = renderBlockContent(
@@ -526,39 +529,20 @@ function ScriptBlockEditor({
         emphasisBlocks.has(block.id)
       )
     }
-    // Only on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  // Count lines
-  useEffect(() => {
-    if (editableRef.current) {
-      const text = extractText(editableRef.current.innerHTML)
-      const count = text.split('\n').length
-      setLineCount(count)
-    }
-  })
 
   const handleInput = useCallback(() => {
     if (!editableRef.current) return
     const text = extractText(editableRef.current.innerHTML)
-
-    // Update line count
-    const count = text.split('\n').length
-    setLineCount(count)
-
     onUpdate(block.id, text)
   }, [block.id, onUpdate])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
-      // Enter: create new block of same type
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault()
         const text = extractText(editableRef.current?.innerHTML || '')
-        // If the current block is empty, do not create a new one
         if (text.trim() === '' && blocks.length > 1) {
-          // Move focus to next block if available
           const nextBlock = blocks[index + 1]
           if (nextBlock) {
             const nextEl = document.querySelector(
@@ -574,7 +558,6 @@ function ScriptBlockEditor({
         return
       }
 
-      // Tab: cycle block type
       if (e.key === 'Tab') {
         e.preventDefault()
         const currentIdx = BLOCK_TYPE_CYCLE.indexOf(block.type)
@@ -583,12 +566,10 @@ function ScriptBlockEditor({
         return
       }
 
-      // Backspace on empty block: delete it
       if (e.key === 'Backspace') {
         const text = extractText(editableRef.current?.innerHTML || '')
         if (text.trim() === '' && blocks.length > 1) {
           e.preventDefault()
-          // Focus previous block
           const prevBlock = blocks[index - 1]
           if (prevBlock) {
             const prevEl = document.querySelector(
@@ -596,7 +577,6 @@ function ScriptBlockEditor({
             )
             if (prevEl instanceof HTMLElement) {
               prevEl.focus()
-              // Place cursor at end
               const range = document.createRange()
               const sel = window.getSelection()
               range.selectNodeContents(prevEl)
@@ -610,7 +590,6 @@ function ScriptBlockEditor({
         }
       }
 
-      // "/" command palette trigger
       if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
         const text = extractText(editableRef.current?.innerHTML || '')
         if (text.trim() === '') {
@@ -620,7 +599,6 @@ function ScriptBlockEditor({
         }
       }
 
-      // Ctrl+Shift+B: toggle emphasis (重读笔)
       if (e.key === 'B' && (e.ctrlKey || e.metaKey) && e.shiftKey) {
         e.preventDefault()
         onToggleEmphasis(block.id)
@@ -641,8 +619,8 @@ function ScriptBlockEditor({
   )
 
   const handleBlur = useCallback(() => {
+    setIsFocused(false)
     if (!editableRef.current) return
-    // Re-render clean HTML after blur (cleanup any artifacts)
     const text = extractText(editableRef.current.innerHTML)
     editableRef.current.innerHTML = renderBlockContent(
       text,
@@ -651,7 +629,6 @@ function ScriptBlockEditor({
   }, [block.id, emphasisBlocks])
 
   const handleDoubleClick = useCallback(() => {
-    // Double click on character block: open autocomplete
     if (block.type === 'character' && editableRef.current) {
       const rect = editableRef.current.getBoundingClientRect()
       onShowAutocomplete(block.id, 'character', '', {
@@ -668,85 +645,40 @@ function ScriptBlockEditor({
     }
   }, [block.type, block.id, onShowAutocomplete])
 
-  // Find linked element
   const linkedElement = block.linkedElementId
     ? storyElements.find((el) => el.id === block.linkedElementId)
     : null
-
-  // Block-specific styling
-  const blockStyles: Record<BlockType, string> = {
-    scene_heading:
-      'font-bold uppercase text-center tracking-wide text-sm leading-relaxed',
-    action: 'text-sm leading-relaxed',
-    character:
-      'uppercase text-center font-semibold text-sm tracking-wider',
-    dialogue: 'text-center text-sm leading-relaxed pl-12 pr-12',
-    parenthetical:
-      'text-center text-xs italic text-muted-foreground leading-relaxed pl-16 pr-16',
-    transition:
-      'text-right uppercase text-xs tracking-widest font-semibold',
-  }
 
   return (
     <div
       data-block-id={block.id}
       className={cn(
-        'group/script-block relative flex items-start gap-2 rounded-md py-2 px-3 transition-colors hover:bg-accent/30',
+        'group/script-block relative flex items-start gap-3 py-2 px-4 transition-colors',
         block.type === 'scene_heading' && 'mt-6 pt-3',
         block.type === 'transition' && 'mb-2',
+        isFocused && (isDarkBg ? 'bg-white/5' : 'bg-gray-50'),
+        !isFocused && !isDarkBg && 'hover:bg-gray-50/60',
+        !isFocused && isDarkBg && 'hover:bg-white/5',
+        emphasisBlocks.has(block.id) && (isDarkBg ? 'bg-amber-900/20' : 'bg-amber-50'),
       )}
+      onFocus={() => setIsFocused(true)}
     >
-      {/* Line numbers */}
-      <div className="flex flex-col items-center pt-1 select-none shrink-0">
-        <span className="text-[10px] text-muted-foreground/50 font-mono w-4 text-right">
-          {index + 1}
+      <div className="flex items-start pt-1 select-none shrink-0 w-10">
+        <span className={cn(
+          'text-[10px] font-medium leading-none',
+          isDarkBg ? 'text-gray-600' : 'text-gray-300',
+          isFocused && (isDarkBg ? 'text-gray-400' : 'text-gray-400'),
+        )}>
+          {BLOCK_TYPE_LABELS[block.type]}
         </span>
-        {lineCount > 1 &&
-          Array.from({ length: lineCount - 1 }, (_, i) => (
-            <span
-              key={i}
-              className="text-[10px] text-muted-foreground/30 font-mono w-4 text-right"
-            >
-              {'\u00A0'}
-            </span>
-          ))}
       </div>
 
-      {/* Block type indicator */}
-      <div className="flex flex-col items-center pt-1.5 select-none shrink-0 w-10">
-        <TooltipProvider delayDuration={400}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Badge
-                variant="outline"
-                className={cn(
-                  'text-[9px] px-1 py-0 h-4 font-normal cursor-default border-dashed transition-colors',
-                  block.type === 'scene_heading' && 'border-blue-300 text-blue-600 dark:border-blue-700 dark:text-blue-400',
-                  block.type === 'action' && 'border-slate-300 text-slate-500 dark:border-slate-600 dark:text-slate-400',
-                  block.type === 'character' && 'border-green-300 text-green-600 dark:border-green-700 dark:text-green-400',
-                  block.type === 'dialogue' && 'border-amber-300 text-amber-600 dark:border-amber-700 dark:text-amber-400',
-                  block.type === 'parenthetical' && 'border-purple-300 text-purple-500 dark:border-purple-700 dark:text-purple-400',
-                  block.type === 'transition' && 'border-orange-300 text-orange-600 dark:border-orange-700 dark:text-orange-400',
-                )}
-              >
-                {BLOCK_TYPE_LABELS[block.type]}
-              </Badge>
-            </TooltipTrigger>
-            <TooltipContent side="left" className="text-xs">
-              <p>{BLOCK_TYPES.find((b) => b.value === block.type)?.description}</p>
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Tab 切换类型 · Enter 新建
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </div>
-
-      {/* Editable content */}
       <div className="flex-1 min-w-0">
-        {/* Character name label above dialogue */}
         {block.type === 'dialogue' && precedingCharName && (
-          <div className="text-center text-[10px] font-semibold text-muted-foreground/50 mb-0.5 uppercase tracking-wider">
+          <div className={cn(
+            'text-center text-[10px] font-semibold mb-0.5 uppercase tracking-widest',
+            isDarkBg ? 'text-gray-500' : 'text-gray-300'
+          )}>
             {precedingCharName}
           </div>
         )}
@@ -756,16 +688,18 @@ function ScriptBlockEditor({
           contentEditable
           suppressContentEditableWarning
           className={cn(
-            'outline-none min-h-[1.5em] break-words whitespace-pre-wrap cursor-text',
-            'font-[Courier_New,Courier,monospace]',
-            'placeholder:text-muted-foreground/40',
-            blockStyles[block.type],
-            emphasisBlocks.has(block.id) && 'text-foreground',
+            'outline-none min-h-[1.5em] break-words whitespace-pre-wrap cursor-text font-sans',
+            BLOCK_LAYOUT_STYLES[block.type],
+            isDarkBg ? 'text-gray-200' : 'text-gray-800',
+            block.type === 'parenthetical' && (isDarkBg ? 'text-gray-400' : 'text-gray-500'),
+            block.type === 'transition' && (isDarkBg ? 'text-gray-400' : 'text-gray-500'),
+            emphasisBlocks.has(block.id) && (isDarkBg ? 'text-amber-300' : 'text-amber-800'),
           )}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
           onDoubleClick={handleDoubleClick}
+          onFocus={() => setIsFocused(true)}
           data-placeholder={
             block.type === 'scene_heading'
               ? '场景一 - 室内 - 白天'
@@ -781,23 +715,25 @@ function ScriptBlockEditor({
                         ? 'CUT TO:'
                         : ''
           }
-          style={{ '--tw-placeholder-opacity': 1 } as React.CSSProperties}
+          style={{ '--placeholder-color': isDarkBg ? 'rgba(200, 200, 200, 0.2)' : 'rgba(113, 113, 122, 0.3)' } as React.CSSProperties}
         />
 
-        {/* Linked element indicator */}
         {linkedElement && (
-          <div className="mt-0.5">
+          <div className="mt-1">
             <ElementInfoPopover element={linkedElement}>
               <button
                 type="button"
-                className="inline-flex items-center gap-1 text-xs text-primary hover:underline cursor-pointer"
+                className={cn(
+                  'inline-flex items-center gap-1.5 text-xs hover:underline cursor-pointer transition-colors',
+                  isDarkBg ? 'text-blue-400' : 'text-blue-600'
+                )}
                 style={{
-                  borderBottom: `2px solid ${linkedElement.color || 'hsl(var(--primary))'}`,
+                  borderBottom: `1px solid ${isDarkBg ? 'rgba(96, 165, 250, 0.3)' : 'rgba(37, 99, 235, 0.3)'}`,
                 }}
               >
                 <span
                   className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: linkedElement.color || 'hsl(var(--primary))' }}
+                  style={{ backgroundColor: linkedElement.color || (isDarkBg ? '#60a5fa' : '#2563eb') }}
                 />
                 {linkedElement.name}
               </button>
@@ -806,8 +742,9 @@ function ScriptBlockEditor({
         )}
       </div>
 
-      {/* Action buttons (shown on hover) */}
-      <div className="absolute -right-2 top-1 flex items-center gap-0.5 opacity-0 group-hover/script-block:opacity-100 transition-opacity">
+      <div className={cn(
+        'flex flex-col items-center pt-1 select-none shrink-0 w-6 opacity-0 group-hover/script-block:opacity-100 transition-opacity',
+      )}>
         {block.type === 'dialogue' && (
           <TooltipProvider delayDuration={300}>
             <Tooltip>
@@ -816,9 +753,14 @@ function ScriptBlockEditor({
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    'h-6 w-6',
-                    emphasisBlocks.has(block.id) &&
-                      'bg-primary/10 text-primary'
+                    'h-6 w-6 rounded-md',
+                    emphasisBlocks.has(block.id)
+                      ? isDarkBg
+                        ? 'bg-amber-900/40 text-amber-400 hover:bg-amber-900/60'
+                        : 'bg-amber-100 text-amber-600 hover:bg-amber-200'
+                      : isDarkBg
+                        ? 'text-gray-600 hover:text-amber-400 hover:bg-white/10'
+                        : 'text-gray-300 hover:text-amber-500 hover:bg-amber-50'
                   )}
                   onClick={() => onToggleEmphasis(block.id)}
                 >
@@ -836,7 +778,12 @@ function ScriptBlockEditor({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 text-destructive/60 hover:text-destructive hover:bg-destructive/10"
+                  className={cn(
+                    'h-6 w-6 rounded-md',
+                    isDarkBg
+                      ? 'text-gray-600 hover:text-red-400 hover:bg-white/10'
+                      : 'text-gray-300 hover:text-red-500 hover:bg-red-50'
+                  )}
                   onClick={() => onDelete(block.id)}
                 >
                   <Trash2 className="h-3 w-3" />
@@ -851,16 +798,12 @@ function ScriptBlockEditor({
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// Keyboard Shortcuts Dialog
-// ═══════════════════════════════════════════════════════════════════
-
 function ShortcutsDialog() {
   const [open, setOpen] = useState(false)
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs">
+        <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-gray-400 hover:text-gray-600">
           <Keyboard className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">快捷键</span>
         </Button>
@@ -948,14 +891,9 @@ function ShortcutsDialog() {
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// Main Component: ScriptEditor
-// ═══════════════════════════════════════════════════════════════════
-
 export function ScriptEditor() {
-  const { currentFile, setCurrentFile, token, storyElements } = useAppStore()
+  const { currentFile, setCurrentFile, token, storyElements, pageBg } = useAppStore()
 
-  // ── Local State ──
   const [data, setData] = useState<ScriptData>(() => ({
     ...DEFAULT_SCRIPT,
     blocks: DEFAULT_SCRIPT.blocks.map((b) => ({ ...b })),
@@ -967,13 +905,11 @@ export function ScriptEditor() {
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const editorContainerRef = useRef<HTMLDivElement>(null)
 
-  // Command palette state
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [commandPaletteAfterBlockId, setCommandPaletteAfterBlockId] = useState<
     string | null
   >(null)
 
-  // Autocomplete state
   const [autocomplete, setAutocomplete] = useState<{
     blockId: string
     type: 'character' | 'scene'
@@ -981,7 +917,9 @@ export function ScriptEditor() {
     position: { top: number; left: number }
   } | null>(null)
 
-  // ── Derive autocomplete options from storyElements ──
+  const isDarkBg = pageBg === 'black'
+  const bgConfig = PAGE_BG_OPTIONS.find(o => o.value === pageBg) || PAGE_BG_OPTIONS[0]
+
   const characterOptions = useMemo<AutocompleteOption[]>(() => {
     return storyElements
       .filter((el) => el.type === 'character')
@@ -1006,16 +944,14 @@ export function ScriptEditor() {
       }))
   }, [storyElements])
 
-  // ── Initialize from file content ──
   useEffect(() => {
     if (currentFile) {
       const parsed = parseScriptContent(currentFile.content)
       setData(parsed)
       setDirty(false)
     }
-  }, [currentFile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentFile?.id])
 
-  // ── Auto-save with debounce ──
   useEffect(() => {
     if (!dirty || !currentFile) return
 
@@ -1032,9 +968,8 @@ export function ScriptEditor() {
         clearTimeout(autoSaveTimerRef.current)
       }
     }
-  }, [data]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [data])
 
-  // ── Save handler ──
   const handleSave = useCallback(
     async (showToast = true) => {
       if (!currentFile) return
@@ -1080,17 +1015,14 @@ export function ScriptEditor() {
     [currentFile, data, token, setCurrentFile]
   )
 
-  // ── Global keyboard shortcuts ──
   useEffect(() => {
     function handleGlobalKeyDown(e: KeyboardEvent) {
-      // Ctrl+S: Save
       if ((e.ctrlKey || e.metaKey) && e.key === 's' && !e.shiftKey) {
         e.preventDefault()
         handleSave(true)
         return
       }
 
-      // Ctrl+Shift+1-4: Insert blocks at end
       if (e.ctrlKey && e.shiftKey) {
         const lastBlock = data.blocks[data.blocks.length - 1]
         if (!lastBlock) return
@@ -1112,9 +1044,8 @@ export function ScriptEditor() {
 
     document.addEventListener('keydown', handleGlobalKeyDown)
     return () => document.removeEventListener('keydown', handleGlobalKeyDown)
-  }, [data.blocks, handleSave]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [data.blocks, handleSave])
 
-  // ── Block operations ──
   const addBlockAfter = useCallback(
     (afterId: string, type: BlockType, content = '') => {
       const newBlock: ScriptBlock = {
@@ -1136,14 +1067,12 @@ export function ScriptEditor() {
       })
       setDirty(true)
 
-      // Focus new block after React renders
       requestAnimationFrame(() => {
         const el = document.querySelector(
           `[data-block-id="${newBlock.id}"] [contenteditable]`
         )
         if (el instanceof HTMLElement) {
           el.focus()
-          // For parenthetical, place cursor between parentheses
           if (type === 'parenthetical') {
             const range = document.createRange()
             const sel = window.getSelection()
@@ -1178,7 +1107,6 @@ export function ScriptEditor() {
       }))
       setDirty(true)
 
-      // Check for "/" in character block to trigger autocomplete
       if (content.startsWith('/') && autocomplete?.blockId !== id) {
         const el = document.querySelector(
           `[data-block-id="${id}"] [contenteditable]`
@@ -1237,7 +1165,6 @@ export function ScriptEditor() {
     })
   }, [])
 
-  // ── Autocomplete handlers ──
   const handleAutocompleteSelect = useCallback(
     (option: AutocompleteOption) => {
       if (!autocomplete) return
@@ -1248,7 +1175,6 @@ export function ScriptEditor() {
       )
       setAutocomplete(null)
 
-      // Re-render the editable
       requestAnimationFrame(() => {
         const el = document.querySelector(
           `[data-block-id="${autocomplete.blockId}"] [contenteditable]`
@@ -1273,7 +1199,6 @@ export function ScriptEditor() {
     []
   )
 
-  // ── Command palette handlers ──
   const handleOpenCommandPalette = useCallback((afterBlockId: string) => {
     setCommandPaletteAfterBlockId(afterBlockId)
     setCommandPaletteOpen(true)
@@ -1289,13 +1214,12 @@ export function ScriptEditor() {
     [commandPaletteAfterBlockId, addBlockAfter]
   )
 
-  // ── No file guard ──
   if (!currentFile) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className={cn('flex h-full items-center justify-center')} style={{ backgroundColor: bgConfig.color }}>
         <div className="text-center">
-          <Film className="mx-auto h-10 w-10 text-muted-foreground/40" />
-          <p className="mt-3 text-sm text-muted-foreground">
+          <Clapperboard className={cn('h-10 w-10 mx-auto mb-3', isDarkBg ? 'text-gray-600' : 'text-gray-300')} />
+          <p className={cn('text-sm', isDarkBg ? 'text-gray-500' : 'text-gray-400')}>
             请选择一个剧本文件
           </p>
         </div>
@@ -1303,73 +1227,103 @@ export function ScriptEditor() {
     )
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // Render
-  // ═══════════════════════════════════════════════════════════════
   return (
-    <div className="flex h-full flex-col">
-      {/* ─── Top Bar ─── */}
-      <div className="flex items-center justify-between border-b px-4 py-2.5 md:px-6">
+    <div className="flex h-full flex-col" style={{ backgroundColor: bgConfig.color }}>
+      <div className={cn(
+        'flex items-center justify-between px-4 py-2 border-b',
+        isDarkBg ? 'border-gray-800' : 'border-gray-100'
+      )}>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <Film className="h-4.5 w-4.5 text-violet-500" />
-            <h2 className="text-sm font-semibold truncate max-w-[200px] sm:max-w-none">
+            <Clapperboard className={cn('h-4 w-4', isDarkBg ? 'text-gray-500' : 'text-gray-400')} />
+            <h2 className={cn(
+              'text-sm font-medium truncate max-w-[200px] sm:max-w-none',
+              isDarkBg ? 'text-gray-200' : 'text-gray-800'
+            )}>
               {currentFile.name}
             </h2>
           </div>
           {dirty && (
-            <Badge
-              variant="outline"
-              className="text-[10px] px-1.5 py-0 text-amber-600 border-amber-300 dark:border-amber-700"
-            >
+            <span className={cn(
+              'flex items-center gap-1.5 text-[10px] px-2 py-0.5 rounded-full',
+              isDarkBg
+                ? 'text-amber-400 bg-amber-900/30'
+                : 'text-amber-600 bg-amber-50'
+            )}>
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
               未保存
-            </Badge>
+            </span>
           )}
           {!dirty && lastSavedAt && (
-            <span className="hidden sm:inline text-[11px] text-muted-foreground">
-              已保存于{' '}
+            <span className={cn(
+              'hidden sm:inline text-[11px]',
+              isDarkBg ? 'text-gray-500' : 'text-gray-400'
+            )}>
+              <Clock className="h-3 w-3 inline mr-1 -mt-0.5" />
               {lastSavedAt.toLocaleTimeString('zh-CN', {
                 hour: '2-digit',
                 minute: '2-digit',
               })}
             </span>
           )}
-          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+          <span className={cn(
+            'text-[10px] px-2 py-0.5 rounded',
+            isDarkBg ? 'text-gray-500 bg-white/5' : 'text-gray-400 bg-gray-100'
+          )}>
             {data.blocks.length} 块
-          </Badge>
+          </span>
+          <span className={cn(
+            'text-[10px] px-2 py-0.5 rounded hidden sm:inline-flex items-center gap-1',
+            isDarkBg ? 'text-gray-500 bg-white/5' : 'text-gray-400 bg-gray-100'
+          )}>
+            <Hash className="h-3 w-3" />
+            {countScenes(data.blocks)} 场景
+          </span>
+          <span className={cn(
+            'text-[10px] px-2 py-0.5 rounded hidden sm:inline-flex items-center gap-1',
+            isDarkBg ? 'text-gray-500 bg-white/5' : 'text-gray-400 bg-gray-100'
+          )}>
+            <Clock className="h-3 w-3" />
+            {estimateDuration(data.blocks)}
+          </span>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <ShortcutsDialog />
 
-          {/* Bold formatting button */}
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-xs">
+                <Button variant="ghost" size="sm" className={cn(
+                  'h-7 gap-1.5 text-xs',
+                  isDarkBg ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'
+                )}>
                   <Bold className="h-3.5 w-3.5" />
                   <span className="hidden md:inline">粗体</span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
-                使用 **文字** 格式化粗体
-              </TooltipContent>
+              <TooltipContent>使用 **文字** 格式化粗体</TooltipContent>
             </Tooltip>
           </TooltipProvider>
 
-          {/* Emphasis (重读笔) button */}
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 gap-1.5 text-xs"
+                  className={cn(
+                    'h-7 gap-1.5 text-xs',
+                    isDarkBg ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'
+                  )}
                   disabled={emphasisBlocks.size === 0}
                   onClick={() => setEmphasisBlocks(new Set())}
                 >
-                  <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                  <span className="hidden md:inline">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span className={cn(
+                    'hidden md:inline',
+                    emphasisBlocks.size > 0 && (isDarkBg ? 'text-amber-400' : 'text-amber-600')
+                  )}>
                     重读笔{emphasisBlocks.size > 0 ? ` (${emphasisBlocks.size})` : ''}
                   </span>
                 </Button>
@@ -1381,16 +1335,18 @@ export function ScriptEditor() {
             </Tooltip>
           </TooltipProvider>
 
-          <Separator orientation="vertical" className="h-5 mx-1" />
+          <div className={cn('w-px h-4 mx-1', isDarkBg ? 'bg-gray-800' : 'bg-gray-200')} />
 
-          {/* Save button */}
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   size="sm"
                   variant={dirty ? 'default' : 'ghost'}
-                  className="h-8 gap-1.5"
+                  className={cn(
+                    'h-7 gap-1.5 text-xs',
+                    !dirty && (isDarkBg ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600')
+                  )}
                   onClick={() => handleSave(true)}
                   disabled={saving || !dirty}
                 >
@@ -1404,143 +1360,148 @@ export function ScriptEditor() {
         </div>
       </div>
 
-      {/* ─── Main Content ─── */}
       <div className="flex-1 overflow-y-auto" ref={editorContainerRef}>
-        {/* Script paper background */}
-        <div className="min-h-full bg-[#faf8f0] dark:bg-[#1a1a16]">
-          {/* Paper content area */}
-          <div className="mx-auto max-w-[680px]">
-            {/* ── Cover / Header Section ── */}
-            <div className="px-8 pt-12 pb-8 md:px-16">
-              {/* Title */}
-              <div className="mb-8 text-center">
+        <div className="mx-auto max-w-[720px]">
+          <div className="px-8 pt-12 pb-8 md:px-16">
+            <div className="mb-8 text-center">
+              <input
+                type="text"
+                value={data.title}
+                onChange={(e) => {
+                  setData((prev) => ({ ...prev, title: e.target.value }))
+                  setDirty(true)
+                }}
+                placeholder="剧本标题"
+                className={cn(
+                  'w-full bg-transparent text-center text-2xl font-bold tracking-tight outline-none font-[Georgia,"Times New Roman",serif]',
+                  isDarkBg
+                    ? 'text-gray-100 placeholder:text-gray-700'
+                    : 'text-gray-800 placeholder:text-gray-200'
+                )}
+              />
+            </div>
+
+            <div className="flex items-center justify-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <span className={cn('text-xs', isDarkBg ? 'text-gray-500' : 'text-gray-400')}>
+                  编剧
+                </span>
                 <input
                   type="text"
-                  value={data.title}
+                  value={data.writer}
                   onChange={(e) => {
-                    setData((prev) => ({ ...prev, title: e.target.value }))
+                    setData((prev) => ({
+                      ...prev,
+                      writer: e.target.value,
+                    }))
                     setDirty(true)
                   }}
-                  placeholder="剧本标题"
-                  className="w-full bg-transparent text-center text-3xl font-bold tracking-tight outline-none placeholder:text-muted-foreground/30 font-[Georgia,serif]"
+                  placeholder="编剧名"
+                  className={cn(
+                    'w-28 bg-transparent border-b text-center outline-none transition-colors',
+                    isDarkBg
+                      ? 'text-gray-300 border-gray-700 placeholder:text-gray-600 focus:border-gray-500'
+                      : 'text-gray-600 border-gray-200 placeholder:text-gray-300 focus:border-gray-400'
+                  )}
                 />
               </div>
-
-              {/* Meta info */}
-              <div className="flex items-center justify-center gap-6 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground/60 text-xs">
-                    编剧
-                  </span>
-                  <input
-                    type="text"
-                    value={data.writer}
-                    onChange={(e) => {
-                      setData((prev) => ({
-                        ...prev,
-                        writer: e.target.value,
-                      }))
-                      setDirty(true)
-                    }}
-                    placeholder="编剧名"
-                    className="w-28 bg-transparent border-b border-dashed border-muted-foreground/20 text-center outline-none placeholder:text-muted-foreground/30 focus:border-primary/50 transition-colors"
-                  />
-                </div>
-                <Separator orientation="vertical" className="h-4" />
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground/60 text-xs">
-                    版本
-                  </span>
-                  <input
-                    type="text"
-                    value={data.version}
-                    onChange={(e) => {
-                      setData((prev) => ({
-                        ...prev,
-                        version: e.target.value,
-                      }))
-                      setDirty(true)
-                    }}
-                    placeholder="第一稿"
-                    className="w-20 bg-transparent border-b border-dashed border-muted-foreground/20 text-center outline-none placeholder:text-muted-foreground/30 focus:border-primary/50 transition-colors"
-                  />
-                </div>
-              </div>
-
-              {/* Decorative separator */}
-              <div className="mt-8 flex items-center gap-3">
-                <div className="h-px flex-1 bg-muted-foreground/15" />
-                <Film className="h-4 w-4 text-muted-foreground/25" />
-                <div className="h-px flex-1 bg-muted-foreground/15" />
+              <div className={cn('w-px h-3', isDarkBg ? 'bg-gray-700' : 'bg-gray-200')} />
+              <div className="flex items-center gap-2">
+                <span className={cn('text-xs', isDarkBg ? 'text-gray-500' : 'text-gray-400')}>
+                  版本
+                </span>
+                <input
+                  type="text"
+                  value={data.version}
+                  onChange={(e) => {
+                    setData((prev) => ({
+                      ...prev,
+                      version: e.target.value,
+                    }))
+                    setDirty(true)
+                  }}
+                  placeholder="第一稿"
+                  className={cn(
+                    'w-20 bg-transparent border-b text-center outline-none transition-colors',
+                    isDarkBg
+                      ? 'text-gray-300 border-gray-700 placeholder:text-gray-600 focus:border-gray-500'
+                      : 'text-gray-600 border-gray-200 placeholder:text-gray-300 focus:border-gray-400'
+                  )}
+                />
               </div>
             </div>
 
-            {/* ── Block Editor ── */}
-            <div className="px-4 pb-20 md:px-8">
-              {data.blocks.map((block, index) => (
-                <ScriptBlockEditor
-                  key={block.id}
-                  block={block}
-                  index={index}
-                  blocks={data.blocks}
-                  onUpdate={updateBlockContent}
-                  onDelete={deleteBlock}
-                  onTypeChange={changeBlockType}
-                  onAddAfter={addBlockAfter}
-                  onShowAutocomplete={handleShowAutocomplete}
-                  emphasisBlocks={emphasisBlocks}
-                  onToggleEmphasis={toggleEmphasis}
-                  onOpenCommandPalette={handleOpenCommandPalette}
-                  storyElements={storyElements}
-                />
-              ))}
+            <Separator className="mt-8" />
+          </div>
 
-              {/* Add block button at end */}
-              <div className="flex items-center justify-center pt-4 pb-8">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-dashed border-muted-foreground/20 hover:border-muted-foreground/40 transition-colors"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      添加新块
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-56 p-1" align="center">
-                    <div className="space-y-0.5">
-                      {BLOCK_TYPES.map((bt) => (
-                        <button
-                          key={bt.value}
-                          type="button"
-                          className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-sm hover:bg-accent transition-colors text-left"
-                          onClick={() => {
-                            const lastBlock =
-                              data.blocks[data.blocks.length - 1]
-                            if (lastBlock) {
-                              addBlockAfter(lastBlock.id, bt.value)
-                            }
-                          }}
-                        >
-                          {bt.icon}
-                          <div className="flex-1">
-                            <span className="font-medium">{bt.label}</span>
-                            <span className="text-xs text-muted-foreground ml-1">
-                              {bt.description}
-                            </span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
+          <div className="px-4 pb-20 md:px-8">
+            {data.blocks.map((block, index) => (
+              <ScriptBlockEditor
+                key={block.id}
+                block={block}
+                index={index}
+                blocks={data.blocks}
+                onUpdate={updateBlockContent}
+                onDelete={deleteBlock}
+                onTypeChange={changeBlockType}
+                onAddAfter={addBlockAfter}
+                onShowAutocomplete={handleShowAutocomplete}
+                emphasisBlocks={emphasisBlocks}
+                onToggleEmphasis={toggleEmphasis}
+                onOpenCommandPalette={handleOpenCommandPalette}
+                storyElements={storyElements}
+                isDarkBg={isDarkBg}
+              />
+            ))}
+
+            <div className="flex items-center justify-center pt-6 pb-8">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      'gap-2 text-xs border border-dashed rounded-lg px-5 py-2',
+                      isDarkBg
+                        ? 'text-gray-600 hover:text-gray-400 border-gray-700 hover:border-gray-500 hover:bg-white/5'
+                        : 'text-gray-400 hover:text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    )}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    添加新块
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-60 p-1.5 rounded-lg" align="center">
+                  <div className="space-y-0.5">
+                    {BLOCK_TYPES.map((bt) => (
+                      <button
+                        key={bt.value}
+                        type="button"
+                        className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-gray-50 transition-colors text-left"
+                        onClick={() => {
+                          const lastBlock =
+                            data.blocks[data.blocks.length - 1]
+                          if (lastBlock) {
+                            addBlockAfter(lastBlock.id, bt.value)
+                          }
+                        }}
+                      >
+                        <span className="text-gray-400">{bt.icon}</span>
+                        <div className="flex-1">
+                          <span className="font-medium text-gray-700">{bt.label}</span>
+                          <span className="text-xs text-gray-400 ml-1.5">
+                            {bt.description}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ─── Command Palette Dialog ─── */}
       <BlockCommandPalette
         open={commandPaletteOpen}
         onOpenChange={(open) => {
@@ -1550,7 +1511,6 @@ export function ScriptEditor() {
         onSelect={handleCommandSelect}
       />
 
-      {/* ─── Autocomplete Popup ─── */}
       {autocomplete && (
         <AutocompletePopup
           options={

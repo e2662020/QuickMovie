@@ -34,6 +34,7 @@ import {
   X,
   Save,
 } from 'lucide-react'
+import { IconPicker, IconDisplay } from '@/components/icon-picker'
 
 // ═══════════════════════════════════════════════════════════════════
 // Types
@@ -1086,7 +1087,6 @@ function CharacterOCs({ boardId, token }: { boardId: string; token: string | nul
   const [personalityInput, setPersonalityInput] = useState('')
   const [viewMode, setViewMode] = useState<'grid' | 'detail'>('grid')
   const [selectedCharId, setSelectedCharId] = useState<string | null>(null)
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
 
   // Parse character data
   const parseCharacter = (el: StoryElement): CharacterData => {
@@ -1285,7 +1285,7 @@ function CharacterOCs({ boardId, token }: { boardId: string; token: string | nul
                   >
                     {/* Avatar area */}
                     <div className="relative flex items-center justify-center bg-gradient-to-br from-muted/80 to-muted/40 py-6">
-                      <span className="text-5xl">{data.avatar}</span>
+                      <IconDisplay value={data.avatar} fallback="👤" size="lg" />
                       <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button
                           size="sm"
@@ -1356,7 +1356,7 @@ function CharacterOCs({ boardId, token }: { boardId: string; token: string | nul
                       <div className="flex gap-4">
                         {/* Avatar */}
                         <div className="flex items-center justify-center w-16 h-16 rounded-xl bg-gradient-to-br from-muted/80 to-muted/40 shrink-0">
-                          <span className="text-3xl">{data.avatar}</span>
+                          <IconDisplay value={data.avatar} fallback="👤" size="lg" />
                         </div>
 
                         {/* Info */}
@@ -1453,40 +1453,12 @@ function CharacterOCs({ boardId, token }: { boardId: string; token: string | nul
             {/* Avatar picker */}
             <div className="space-y-2">
               <Label className="text-xs font-medium">头像</Label>
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-muted/80 to-muted/40 border">
-                  <span className="text-3xl">{formAvatar}</span>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5"
-                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                >
-                  <Edit className="h-3.5 w-3.5" />
-                  选择表情
-                </Button>
-              </div>
-              {showEmojiPicker && (
-                <div className="flex flex-wrap gap-1.5 p-3 rounded-md border bg-muted/30 max-h-[140px] overflow-y-auto">
-                  {EMOJI_OPTIONS.map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      className={cn(
-                        'flex items-center justify-center w-8 h-8 rounded-md hover:bg-muted/60 transition-colors text-lg',
-                        formAvatar === emoji && 'bg-primary/20 ring-2 ring-primary'
-                      )}
-                      onClick={() => {
-                        setFormAvatar(emoji)
-                        setShowEmojiPicker(false)
-                      }}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <IconPicker
+                value={formAvatar}
+                onChange={setFormAvatar}
+                emojis={EMOJI_OPTIONS}
+                size="lg"
+              />
             </div>
 
             {/* Name */}

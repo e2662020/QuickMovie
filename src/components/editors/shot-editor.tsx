@@ -77,7 +77,7 @@ import {
 import {
   arrayMove,
   SortableContext,
-  horizontalListSortingStrategy,
+  rectSortingStrategy,
   useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -1461,9 +1461,9 @@ export function ShotEditor() {
                     /* Grid filmstrip */
                     <SortableContext
                       items={shots.map((s) => s.id)}
-                      strategy={horizontalListSortingStrategy}
+                      strategy={rectSortingStrategy}
                     >
-                      <div className="flex gap-4 pb-4">
+                      <div className="flex flex-wrap gap-4 pb-4">
                         {shots.map((shot, index) => (
                           <SortableShotCard
                             key={shot.id}
@@ -1493,7 +1493,6 @@ export function ShotEditor() {
                     </SortableContext>
                   )}
                 </div>
-                <ScrollBar orientation="horizontal" />
               </ScrollArea>
               <DragOverlay>
                 {activeId ? (

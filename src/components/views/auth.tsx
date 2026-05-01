@@ -277,6 +277,19 @@ export function AuthView() {
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     登录
                   </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full mt-2"
+                    disabled={loading}
+                    onClick={() => {
+                      setLoginEmail('admin@test.com')
+                      setLoginPassword('123456')
+                    }}
+                  >
+                    🔧 填入测试账号
+                  </Button>
                 </form>
               </TabsContent>
 

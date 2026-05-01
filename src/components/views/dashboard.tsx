@@ -43,6 +43,12 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 import {
   Film,
@@ -64,13 +70,15 @@ import {
   Eye,
   Pencil,
   ClipboardList,
+  Sun,
+  Moon,
+  Cog,
+  Key,
 } from 'lucide-react'
+import { IconPicker, IconDisplay } from '@/components/icon-picker'
+import { SettingsDialog } from '@/components/settings-dialog'
 
 // ─── Constants ───────────────────────────────────────────────────
-const EMOJI_OPTIONS = [
-  '🎬', '🎥', '🎙️', '🎭', '🎪', '🎨', '📸', '🎵', '💻', '📚',
-]
-
 const ROLE_LABELS: Record<string, string> = {
   owner: '拥有者',
   admin: '管理员',
@@ -119,6 +127,9 @@ export function DashboardView() {
     setView,
     setInviteCode,
     reset,
+    darkMode,
+    setDarkMode,
+    pageBg,
   } = useAppStore()
 
   const isMobile = useIsMobile()
@@ -137,6 +148,7 @@ export function DashboardView() {
   const [deleteBoardOpen, setDeleteBoardOpen] = useState(false)
   const [manageMembersOpen, setManageMembersOpen] = useState(false)
   const [inviteLinkOpen, setInviteLinkOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   // Form values
   const [newTeamName, setNewTeamName] = useState('')
@@ -144,6 +156,7 @@ export function DashboardView() {
   const [newBoardName, setNewBoardName] = useState('')
   const [renameBoardName, setRenameBoardName] = useState('')
   const [renameTeamName, setRenameTeamName] = useState('')
+  const [renameTeamIcon, setRenameTeamIcon] = useState('🎬')
   const [targetBoard, setTargetBoard] = useState<DirectorBoard | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -252,6 +265,20 @@ export function DashboardView() {
     }
   }, [currentTeam, loadBoards, setBoards])
 
+  // Toggle .dark class based on darkMode or black background
+  useEffect(() => {
+    const root = document.documentElement
+    if (pageBg === 'black' || darkMode) {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
+  }, [pageBg, darkMode])
+
+  const handleToggleDarkMode = useCallback(() => {
+    setDarkMode(!darkMode)
+  }, [darkMode, setDarkMode])
+
   // ── Handlers ──
 
   // Select team
@@ -305,7 +332,7 @@ export function DashboardView() {
       const res = await fetch('/api/teams', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teamId: currentTeam.id, name: renameTeamName.trim() }),
+        body: JSON.stringify({ teamId: currentTeam.id, name: renameTeamName.trim(), icon: renameTeamIcon }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -538,6 +565,7 @@ export function DashboardView() {
   const openRenameTeam = () => {
     if (!currentTeam) return
     setRenameTeamName(currentTeam.name)
+    setRenameTeamIcon(currentTeam.icon || '🎬')
     setRenameTeamOpen(true)
   }
 
@@ -604,9 +632,7 @@ export function DashboardView() {
                   : 'text-muted-foreground'
               }`}
             >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-base">
-                {team.icon || '🎬'}
-              </span>
+              <IconDisplay value={team.icon} fallback="🎬" size="sm" />
               <span className="flex-1 truncate">{team.name}</span>
               <Badge variant="secondary" className="ml-auto h-5 px-1.5 text-[10px]">
                 {team.memberCount ?? 0}
@@ -694,7 +720,7 @@ export function DashboardView() {
         {/* Team name */}
         {currentTeam ? (
           <div className="flex items-center gap-2">
-            <span className="text-lg">{currentTeam.icon || '🎬'}</span>
+            <IconDisplay value={currentTeam.icon} fallback="🎬" size="sm" />
             <h1 className="text-lg font-semibold">{currentTeam.name}</h1>
             <Badge variant="secondary" className="hidden sm:inline-flex">
               {members.length > 0
@@ -707,6 +733,46 @@ export function DashboardView() {
         )}
 
         <div className="ml-auto flex items-center gap-2">
+          {/* Dark mode toggle */}
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9"
+                  onClick={handleToggleDarkMode}
+                >
+                  {darkMode || pageBg === 'black' ? (
+                    <Sun className="h-4 w-4 text-amber-400" />
+                  ) : (
+                    <Moon className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {darkMode || pageBg === 'black' ? '切换浅色模式' : '切换深色模式'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          {/* Settings button */}
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9"
+                  onClick={() => setSettingsOpen(true)}
+                >
+                  <Cog className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>设置</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           {/* Manage team dropdown */}
           {currentTeam && canManageTeam && (
             <DropdownMenu>
@@ -956,22 +1022,11 @@ export function DashboardView() {
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label>团队图标</Label>
-              <div className="flex flex-wrap gap-2">
-                {EMOJI_OPTIONS.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    onClick={() => setNewTeamIcon(emoji)}
-                    className={`flex h-10 w-10 items-center justify-center rounded-lg border-2 text-lg transition-colors ${
-                      newTeamIcon === emoji
-                        ? 'border-primary bg-primary/10'
-                        : 'border-transparent bg-muted hover:bg-muted/80'
-                    }`}
-                  >
-                    {emoji}
-                  </button>
-                ))}
-              </div>
+              <IconPicker
+                value={newTeamIcon}
+                onChange={setNewTeamIcon}
+                size="md"
+              />
             </div>
 
             <div className="space-y-2">
@@ -1120,6 +1175,15 @@ export function DashboardView() {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>团队图标</Label>
+              <IconPicker
+                value={renameTeamIcon}
+                onChange={setRenameTeamIcon}
+                size="md"
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="rename-team-name">团队名称</Label>
               <Input
@@ -1356,6 +1420,9 @@ export function DashboardView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Settings Dialog */}
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   )
 }

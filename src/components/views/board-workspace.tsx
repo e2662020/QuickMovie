@@ -10,6 +10,7 @@ import { StoryboardEditor } from '@/components/editors/storyboard-editor'
 import { ScriptEditor } from '@/components/editors/script-editor'
 import { ShotEditor } from '@/components/editors/shot-editor'
 import { NoteEditor } from '@/components/editors/note-editor'
+import { SettingsDialog } from '@/components/settings-dialog'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -32,6 +33,11 @@ import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from '@/components/ui/popover'
 import {
   Sheet,
   SheetContent,
@@ -75,6 +81,11 @@ import {
   Sparkles,
   Type,
   Lightbulb,
+  Palette,
+  Check,
+  Sun,
+  Moon,
+  Cog,
 } from 'lucide-react'
 
 // ═══════════════════════════════════════════════════════════════════
@@ -93,6 +104,18 @@ const FILE_TYPE_CONFIG: Record<
   excel: { label: '表格', icon: Table, color: 'text-emerald-500' },
   note: { label: '笔记', icon: StickyNote, color: 'text-yellow-500' },
   folder: { label: '文件夹', icon: Folder, color: 'text-amber-600' },
+}
+
+const PAGE_BG_OPTIONS: { value: string; label: string; color: string; dark: boolean }[] = [
+  { value: 'white', label: '白色', color: '#ffffff', dark: false },
+  { value: 'black', label: '黑色', color: '#1a1a1a', dark: true },
+  { value: 'blue', label: '淡蓝', color: '#eef6fc', dark: false },
+  { value: 'green', label: '淡绿', color: '#edf7ed', dark: false },
+  { value: 'yellow', label: '淡黄', color: '#fef9e7', dark: false },
+]
+
+const getPageBgColor = (bg: string): string => {
+  return PAGE_BG_OPTIONS.find(o => o.value === bg)?.color || '#ffffff'
 }
 
 const CREATABLE_TYPES: Exclude<BoardFile['type'], 'word' | 'excel'>[] = [
@@ -635,6 +658,10 @@ export function BoardWorkspace() {
     setResources,
     setSidebarOpen,
     setResourcePanelOpen,
+    pageBg,
+    setPageBg,
+    darkMode,
+    setDarkMode,
     setView,
   } = useAppStore()
 
@@ -659,6 +686,7 @@ export function BoardWorkspace() {
 
   // Sheet state for mobile sidebar
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   // ── Computed ──
   const rootFiles = boardFiles
@@ -930,10 +958,7 @@ export function BoardWorkspace() {
         const file = files[i]
         const formData = new FormData()
         formData.append('file', file)
-        formData.append('boardId', currentBoard.id)
-        if (currentFile && currentFile.type !== 'folder') {
-          formData.append('fileId', currentFile.id)
-        }
+        formData.append('resource', 'true')
 
         const res = await fetch('/api/upload', {
           method: 'POST',
@@ -943,6 +968,24 @@ export function BoardWorkspace() {
         if (!res.ok) {
           toast.error(`${file.name}: ${data.error || '上传失败'}`)
           continue
+        }
+
+        const saveRes = await fetch('/api/boards/resources', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            boardId: currentBoard.id,
+            fileId: currentFile && currentFile.type !== 'folder' ? currentFile.id : null,
+            name: data.originalName || file.name,
+            type: data.format || file.type,
+            url: data.url,
+            originalUrl: data.originalUrl || null,
+            size: data.size || file.size,
+            mimeType: data.mimeType || file.type,
+          }),
+        })
+        if (!saveRes.ok) {
+          toast.error(`${file.name}: 保存资源记录失败`)
         }
       }
       toast.success('资源上传完成')
@@ -977,18 +1020,36 @@ export function BoardWorkspace() {
     setView('dashboard')
   }, [setView])
 
+  // Toggle .dark class based on darkMode or black background
+  useEffect(() => {
+    const root = document.documentElement
+    if (pageBg === 'black' || darkMode) {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
+  }, [pageBg, darkMode])
+
+  const handleSetPageBg = useCallback((bg: string) => {
+    setPageBg(bg)
+  }, [setPageBg])
+
+  const handleToggleDarkMode = useCallback(() => {
+    setDarkMode(!darkMode)
+  }, [darkMode, setDarkMode])
+
   // ── Loading State ──
   if (!currentBoard) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="flex h-screen items-center justify-center" style={{ backgroundColor: getPageBgColor(pageBg) }}>
+        <Loader2 className={cn('h-6 w-6 animate-spin', pageBg === 'black' ? 'text-gray-400' : 'text-muted-foreground')} />
       </div>
     )
   }
 
   if (loading) {
     return (
-      <div className="flex h-screen flex-col bg-background">
+      <div className="flex h-screen flex-col" style={{ backgroundColor: getPageBgColor(pageBg) }}>
         {/* Header skeleton */}
         <header className="flex items-center gap-3 border-b px-4 py-3 md:px-6">
           <Skeleton className="h-8 w-8 rounded-md" />
@@ -1012,6 +1073,13 @@ export function BoardWorkspace() {
       </div>
     )
   }
+
+  // ═══════════════════════════════════════════════════════════════
+  // Render
+  // ═══════════════════════════════════════════════════════════════
+
+  const isDarkBg = pageBg === 'black'
+  const bgColor = getPageBgColor(pageBg)
 
   // ═══════════════════════════════════════════════════════════════
   // Sidebar Content (shared between desktop & mobile)
@@ -1078,13 +1146,13 @@ export function BoardWorkspace() {
     </div>
   )
 
-  // ═══════════════════════════════════════════════════════════════
-  // Render
-  // ═══════════════════════════════════════════════════════════════
   return (
-    <div className="flex h-screen flex-col bg-background">
+    <div className="flex h-screen flex-col" style={{ backgroundColor: bgColor }}>
       {/* ─── Header ─── */}
-      <header className="flex items-center gap-3 border-b px-3 py-2.5 md:px-4">
+      <header className={cn(
+        'flex items-center gap-3 px-3 py-2.5 md:px-4 border-b',
+        isDarkBg ? 'border-gray-800' : 'border-gray-100'
+      )} style={{ backgroundColor: bgColor }}>
         {/* Back button */}
         <TooltipProvider delayDuration={300}>
           <Tooltip>
@@ -1111,7 +1179,7 @@ export function BoardWorkspace() {
                   <Menu className="h-4 w-4" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-[280px] p-0">
+              <SheetContent side="left" className="w-[280px] p-0" style={{ backgroundColor: bgColor }}>
                 <SheetHeader className="sr-only">
                   <SheetTitle>文件管理</SheetTitle>
                 </SheetHeader>
@@ -1170,6 +1238,81 @@ export function BoardWorkspace() {
         )}
 
         <div className="ml-auto flex items-center gap-1.5">
+          {/* Background color picker */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Palette className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-2" align="end">
+              <div className="space-y-1">
+                <p className="text-[10px] text-muted-foreground font-medium px-2 pb-1">页面背景</p>
+                <div className="flex gap-1">
+                  {PAGE_BG_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className={cn(
+                        'relative h-7 w-7 rounded-md border-2 transition-all flex items-center justify-center',
+                        pageBg === opt.value
+                          ? 'border-gray-400 scale-110'
+                          : 'border-transparent hover:border-gray-200'
+                      )}
+                      style={{ backgroundColor: opt.color }}
+                      onClick={() => handleSetPageBg(opt.value)}
+                      title={opt.label}
+                    >
+                      {pageBg === opt.value && (
+                        <Check className={cn('h-3.5 w-3.5', opt.dark ? 'text-gray-300' : 'text-gray-600')} />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* Dark mode toggle */}
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handleToggleDarkMode}
+                >
+                  {darkMode || pageBg === 'black' ? (
+                    <Sun className="h-4 w-4 text-amber-400" />
+                  ) : (
+                    <Moon className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {darkMode || pageBg === 'black' ? '切换浅色模式' : '切换深色模式'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          {/* Settings button */}
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setSettingsOpen(true)}
+                >
+                  <Cog className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>设置</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           {/* Resource panel toggle */}
           <TooltipProvider delayDuration={300}>
             <Tooltip>
@@ -1206,7 +1349,7 @@ export function BoardWorkspace() {
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop Sidebar */}
         {!isMobile && sidebarOpen && (
-          <aside className="w-[240px] shrink-0 border-r bg-background/95 backdrop-blur-sm transition-all duration-200">
+          <aside className="w-[240px] shrink-0 border-r transition-all duration-200" style={{ backgroundColor: bgColor, borderColor: isDarkBg ? '#1f2937' : '#e5e7eb' }}>
             {sidebarContent}
           </aside>
         )}
@@ -1218,7 +1361,7 @@ export function BoardWorkspace() {
 
         {/* Resource Panel */}
         {resourcePanelOpen && !isMobile && (
-          <aside className="w-[280px] shrink-0 border-l bg-background/95 backdrop-blur-sm transition-all duration-200">
+          <aside className="w-[280px] shrink-0 border-l transition-all duration-200" style={{ backgroundColor: bgColor, borderColor: isDarkBg ? '#1f2937' : '#e5e7eb' }}>
             <ResourcePanel
               boardId={currentBoard.id}
               resources={resources}
@@ -1236,7 +1379,7 @@ export function BoardWorkspace() {
               open={resourcePanelOpen}
               onOpenChange={setResourcePanelOpen}
             >
-              <SheetContent side="right" className="w-[300px] p-0">
+              <SheetContent side="right" className="w-[300px] p-0" style={{ backgroundColor: bgColor }}>
                 <SheetHeader className="sr-only">
                   <SheetTitle>资源库</SheetTitle>
                 </SheetHeader>
@@ -1379,6 +1522,9 @@ export function BoardWorkspace() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Settings Dialog */}
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   )
 }
