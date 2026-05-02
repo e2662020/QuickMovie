@@ -56,6 +56,59 @@ class AIService {
     }
   }
 
+  async executeTool(tool: string, params: Record<string, any>): Promise<any> {
+    try {
+      const result = await this.makeRequest<any>('/tool', { tool, params })
+      return result
+    } catch (error: any) {
+      toast.error(error.message || '工具执行失败')
+      throw error
+    }
+  }
+
+  async chatWithTools(options: AIGenerateOptions & { maxTools?: number }): Promise<{
+    content: string
+    toolCalls: Array<{ tool: string; params: any }>
+  }> {
+    try {
+      const { maxTools = 3, ...chatOptions } = options
+      const response = await this.chat(chatOptions)
+      const toolCalls = parseToolCalls(response)
+      
+      const limitedToolCalls = toolCalls.slice(0, maxTools)
+      
+      for (const toolCall of limitedToolCalls) {
+        try {
+          const result = await this.executeTool(toolCall.tool, toolCall.params)
+          
+          const followUpResponse = await this.chat({
+            messages: [
+              ...chatOptions.messages,
+              { role: 'assistant' as const, content: response },
+              { 
+                role: 'assistant' as const, 
+                content: `工具执行结果：\n${JSON.stringify(result, null, 2)}` 
+              },
+            ],
+            systemPrompt: chatOptions.systemPrompt,
+          })
+          
+          return {
+            content: followUpResponse,
+            toolCalls: limitedToolCalls,
+          }
+        } catch (error) {
+          console.error(`Tool ${toolCall.tool} failed:`, error)
+        }
+      }
+      
+      return { content: response, toolCalls: limitedToolCalls }
+    } catch (error: any) {
+      toast.error(error.message || 'AI对话失败')
+      throw error
+    }
+  }
+
   async enhanceScript(options: AIEnhanceScriptOptions): Promise<string> {
     try {
       const result = await this.makeRequest<{ content: string }>('/enhance-script', options)
