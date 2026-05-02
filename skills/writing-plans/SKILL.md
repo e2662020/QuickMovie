@@ -33,8 +33,6 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
-
 **Goal:** [One sentence describing what this builds]
 
 **Architecture:** [2-3 sentences about approach]

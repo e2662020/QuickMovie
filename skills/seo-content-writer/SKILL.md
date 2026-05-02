@@ -31,7 +31,7 @@ metadata:
 # SEO Content Writer
 
 
-> **[SEO & GEO Skills Library](https://skills.sh/aaron-he-zhu/seo-geo-claude-skills)** · 20 skills for SEO + GEO · Install all: `npx skills add aaron-he-zhu/seo-geo-claude-skills`
+> **[SEO & GEO Skills Library](https://skills.sh/aaron-he-zhu/seo-geo-skills)** · 20 skills for SEO + GEO · Install all: `npx skills add aaron-he-zhu/seo-geo-skills`
 
 <details>
 <summary>Browse all 20 skills</summary>

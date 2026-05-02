@@ -52,7 +52,7 @@ fi
 
 ```bash
 # Playwright（获取 canvas 引擎版本、组件树、运行时网络请求）
-node ~/.claude/skills/web-shader-extractor/scripts/fetch-rendered-dom.mjs '<URL>'
+node skills/web-shader-extractor/scripts/fetch-rendered-dom.mjs '<URL>'
 # → /tmp/rendered/: dom.html, canvas-info.json, network.json, screenshot.png, console.log
 
 # curl（获取原始 HTML，用于提取内嵌配置和密钥）

@@ -38,7 +38,7 @@ This matters because creative work embodies meaning and emotion that come from t
 
 First, we need laws to stop major AI labs—particularly OpenAI and Google AI—from collecting human-made art as training data for their image generation models. We need strong regulation requiring artists to **opt in** before their work can be collected and trained on.
 
-Second, we need more AI leaders to step up and stop this before it's too late. For example, Anthropic (makers of Claude) has never released an image generation model. That doesn't mean Claude can't be used to create websites or other graphic design work, but creating a UI or navigation menu is entirely different from painting on canvas.
+Second, we need more AI leaders to step up and stop this before it's too late. For example, some AI companies have never released an image generation model. That doesn't mean AI can't be used to create websites or other graphic design work, but creating a UI or navigation menu is entirely different from painting on canvas.
 
 ### AI Art Hurts the Future Potential of AI
 

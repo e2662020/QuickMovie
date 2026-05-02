@@ -152,7 +152,7 @@ export function SettingsDialog({
             <div className="space-y-2">
               <Label htmlFor="personal-apikey">个人 API Key</Label>
               <p className="text-xs text-muted-foreground">
-                输入你的 AI API Key（如 OpenAI / Claude），用于剧本润色、AI 辅助生成等功能。API Key 仅存储在本地浏览器中。
+                输入你的 AI API Key（如 OpenAI），用于剧本润色、AI 辅助生成等功能。API Key 仅存储在本地浏览器中。
               </p>
               <div className="relative">
                 <Input

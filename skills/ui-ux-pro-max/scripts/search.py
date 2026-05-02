@@ -25,7 +25,7 @@ except ImportError:  # pragma: no cover
 
 
 def format_output(result):
-    """Format results for Claude consumption (token-optimized)"""
+    """Format results for AI consumption (token-optimized)"""
     if "error" in result:
         return f"Error: {result['error']}"
 
