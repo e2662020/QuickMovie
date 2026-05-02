@@ -451,7 +451,7 @@ const BLOCK_LAYOUT_STYLES: Record<BlockType, string> = {
   scene_heading: 'font-bold uppercase text-center tracking-wider text-sm leading-relaxed',
   action: 'text-sm leading-7',
   character: 'uppercase text-center font-semibold text-sm tracking-wider',
-  dialogue: 'text-center text-sm leading-relaxed pl-12 pr-12',
+  dialogue: 'text-left text-sm leading-relaxed pl-12 pr-12',
 }
 
 function ScriptBlockEditor({
