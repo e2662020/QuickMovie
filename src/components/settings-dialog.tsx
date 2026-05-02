@@ -166,7 +166,7 @@ export function SettingsDialog({
             </ul>
           </div>
 
-        <Tabs defaultValue="personal" className="w-full">
+          <Tabs defaultValue="personal" className="w-full">
           <TabsList className="w-full">
             <TabsTrigger value="personal" className="flex-1 gap-2">
               <Key className="h-4 w-4" />
