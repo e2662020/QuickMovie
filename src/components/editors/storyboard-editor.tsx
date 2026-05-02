@@ -33,8 +33,10 @@ import {
   Grip,
   X,
   Save,
+  Zap,
 } from 'lucide-react'
 import { IconPicker, IconDisplay } from '@/components/icon-picker'
+import { MindMapCanvas } from './mind-map-canvas'
 
 // ═══════════════════════════════════════════════════════════════════
 // Types
@@ -46,10 +48,12 @@ interface MindMapNode {
   y: number
   title: string
   color: string
+  type: 'character' | 'scene' | 'event' | 'default'
   elementId: string
 }
 
 interface MindMapConnection {
+  id: string
   from: string
   to: string
 }
@@ -81,16 +85,12 @@ interface Comment {
 // Constants
 // ═══════════════════════════════════════════════════════════════════
 
-const NODE_COLORS = [
-  '#3b82f6', // blue
-  '#ef4444', // red
-  '#10b981', // emerald
-  '#f59e0b', // amber
-  '#8b5cf6', // violet
-  '#ec4899', // pink
-  '#06b6d4', // cyan
-  '#f97316', // orange
-]
+const NODE_COLORS = {
+  character: '#3b82f6',
+  scene: '#10b981',
+  event: '#f59e0b',
+  default: '#8b5cf6',
+}
 
 const EMOJI_OPTIONS = [
   '👤', '👩', '👨', '👧', '👦', '🧑', '👱', '👲', '🧔', '👵', '👴',
@@ -223,7 +223,7 @@ function StoryMindMap({ boardId, token }: { boardId: string; token: string | nul
             x: pos.x || Math.random() * 600 + 50,
             y: pos.y || Math.random() * 400 + 50,
             title: el.name,
-            color: el.color || NODE_COLORS[Math.floor(Math.random() * NODE_COLORS.length)],
+            color: el.color || NODE_COLORS.default,
             type: 'default',
             elementId: el.id,
           }

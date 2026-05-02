@@ -24,6 +24,7 @@ import {
   GripVertical,
   Check,
   X,
+  Edit,
 } from 'lucide-react'
 
 interface MindMapNode {
