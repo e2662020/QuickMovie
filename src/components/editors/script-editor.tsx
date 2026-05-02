@@ -1293,11 +1293,9 @@ export function ScriptEditor() {
           <ShortcutsDialog />
 
           <AIPanel
-            scriptContent={scriptContent}
             onEnhance={(enhanced) => {
               if (enhanced) {
-                setScriptContent(enhanced)
-                setDirty(true)
+                toast.success('剧本已更新')
               }
             }}
           />

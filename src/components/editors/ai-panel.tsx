@@ -20,16 +20,42 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
 import { aiService, useAI } from '@/lib/ai-service'
+import { useAppStore } from '@/lib/store'
 
 interface AIPanelProps {
-  scriptContent: string
-  onEnhance: (enhanced: string | null) => void
+  onEnhance?: (enhanced: string | null) => void
 }
 
-export function AIPanel({ scriptContent, onEnhance }: AIPanelProps) {
+export function AIPanel({ onEnhance }: AIPanelProps) {
   const [loading, setLoading] = useState(false)
   const [loadingAction, setLoadingAction] = useState<string | null>(null)
   const { hasAIKey } = useAI()
+  const { currentScriptFile, files } = useAppStore()
+
+  const scriptContent = React.useMemo(() => {
+    if (!currentScriptFile) return ''
+    const file = files.find((f) => f.id === currentScriptFile)
+    if (!file || file.type !== 'script') return ''
+    
+    try {
+      const data = JSON.parse(file.content)
+      if (data.blocks) {
+        return data.blocks
+          .map((block: any) => {
+            if (block.type === 'scene-heading') return `\n【${block.content}】\n`
+            if (block.type === 'action') return block.content + '\n'
+            if (block.type === 'dialogue') return `${block.character}:\n${block.content}\n`
+            if (block.type === 'parenthetical') return `(${block.content}) `
+            if (block.type === 'transition') return `\n${block.content}\n`
+            return block.content
+          })
+          .join('\n')
+      }
+      return file.content
+    } catch {
+      return file.content
+    }
+  }, [currentScriptFile, files])
 
   const handleEnhance = async (type: 'dialogue' | 'description' | 'both') => {
     if (!scriptContent) {
