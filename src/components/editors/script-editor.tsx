@@ -1291,6 +1291,16 @@ export function ScriptEditor() {
         <div className="flex items-center gap-1">
           <ShortcutsDialog />
 
+          <AIPanel
+            scriptContent={scriptContent}
+            onEnhance={(enhanced) => {
+              if (enhanced) {
+                setScriptContent(enhanced)
+                setDirty(true)
+              }
+            }}
+          />
+
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>

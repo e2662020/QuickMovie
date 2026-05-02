@@ -22,7 +22,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs'
-import { Eye, EyeOff, Key, Shield, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Key, Shield, Loader2, Sparkles, Check } from 'lucide-react'
 
 export function SettingsDialog({
   open,
@@ -129,12 +129,42 @@ export function SettingsDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Key className="h-5 w-5" />
-            设置
+            AI 设置
           </DialogTitle>
           <DialogDescription>
-            管理个人和团队的 API Key 配置
+            配置 AI 功能，让 AI 辅助您的创作。系统会自动使用团队或个人 API Key。
           </DialogDescription>
         </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div className="rounded-lg border bg-muted/50 p-4">
+            <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-amber-500" />
+              AI 功能
+            </h3>
+            <ul className="text-xs text-muted-foreground space-y-1.5">
+              <li className="flex items-start gap-2">
+                <Check className="h-3.5 w-3.5 mt-0.5 text-green-500 shrink-0" />
+                <span>剧本润色与优化</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-3.5 w-3.5 mt-0.5 text-green-500 shrink-0" />
+                <span>台词优化与建议</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-3.5 w-3.5 mt-0.5 text-green-500 shrink-0" />
+                <span>分镜画面描述生成</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-3.5 w-3.5 mt-0.5 text-green-500 shrink-0" />
+                <span>故事结构分析</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="h-3.5 w-3.5 mt-0.5 text-green-500 shrink-0" />
+                <span>策划案创意生成</span>
+              </li>
+            </ul>
+          </div>
 
         <Tabs defaultValue="personal" className="w-full">
           <TabsList className="w-full">
