@@ -42,6 +42,12 @@ export const SYSTEM_PROMPT = `你是一位专业的影视创作AI助手，名为
 8. **suggest_next** - 建议下一个创作内容
    - 基于当前内容，推荐下一个应该创作的部分
 
+9. **web_search** - 网络搜索功能
+   - 参数：{ "query": "搜索查询关键词" }
+   - 返回相关网页的标题、链接和内容摘要
+   - 用于获取最新的行业信息、参考资料、技术细节等
+   - 当需要了解最新动态、查询事实信息或获取灵感时使用
+
 ## 工作原则
 
 1. **理解上下文**：在回答前，先读取相关项目内容，了解当前创作状态
@@ -192,6 +198,20 @@ export const TOOL_DESCRIPTIONS = {
         },
       },
       required: [],
+    },
+  },
+  web_search: {
+    name: 'web_search',
+    description: '通过网络搜索获取最新信息、参考资料和事实数据，用于创作灵感和背景调研',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: '搜索查询关键词，用简洁的语言描述需要搜索的内容',
+        },
+      },
+      required: ['query'],
     },
   },
 }

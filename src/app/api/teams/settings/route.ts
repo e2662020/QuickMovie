@@ -27,14 +27,20 @@ export async function GET(request: NextRequest) {
 
     const team = await db.team.findUnique({
       where: { id: teamId },
-      select: { id: true, aiApiKey: true },
+      select: { id: true, aiApiKey: true, aiEndpoint: true, aiModel: true, webSearchEndpoint: true, webSearchApiKey: true },
     })
 
     if (!team) {
       return NextResponse.json({ error: '团队不存在' }, { status: 404 })
     }
 
-    return NextResponse.json({ apiKey: team.aiApiKey || null })
+    return NextResponse.json({
+      apiKey: team.aiApiKey || null,
+      endpoint: team.aiEndpoint || null,
+      model: team.aiModel || null,
+      webSearchEndpoint: team.webSearchEndpoint || null,
+      webSearchApiKey: team.webSearchApiKey || null,
+    })
   } catch (error) {
     console.error('Get team settings error:', error)
     return NextResponse.json({ error: '获取设置失败' }, { status: 500 })
@@ -50,7 +56,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { teamId, apiKey } = body
+    const { teamId, apiKey, endpoint, model, webSearchEndpoint, webSearchApiKey } = body
 
     if (!teamId) {
       return NextResponse.json({ error: '缺少团队ID' }, { status: 400 })
@@ -66,7 +72,13 @@ export async function PATCH(request: NextRequest) {
 
     await db.team.update({
       where: { id: teamId },
-      data: { aiApiKey: apiKey || null },
+      data: {
+        aiApiKey: apiKey !== undefined ? (apiKey || null) : undefined,
+        aiEndpoint: endpoint !== undefined ? (endpoint || null) : undefined,
+        aiModel: model !== undefined ? (model || null) : undefined,
+        webSearchEndpoint: webSearchEndpoint !== undefined ? (webSearchEndpoint || null) : undefined,
+        webSearchApiKey: webSearchApiKey !== undefined ? (webSearchApiKey || null) : undefined,
+      },
     })
 
     return NextResponse.json({ success: true })

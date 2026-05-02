@@ -45,8 +45,11 @@ export function AIChatPanel({ className }: AIChatPanelProps) {
     setContext,
   } = useAIAssistant()
   
-  const { personalApiKey, teamApiKey, currentScriptFile, currentBoardFile } = useAppStore()
+  const { personalApiKey, personalEndpoint, personalModel, teamApiKey, teamEndpoint, teamModel, currentScriptFile, currentBoardFile } = useAppStore()
   const hasAIKey = !!personalApiKey || !!teamApiKey
+  const apiKey = teamApiKey || personalApiKey
+  const endpoint = teamEndpoint || personalEndpoint
+  const model = teamModel || personalModel
   
   useEffect(() => {
     if (currentScriptFile) {
@@ -112,6 +115,9 @@ export function AIChatPanel({ className }: AIChatPanelProps) {
           },
         ],
         systemPrompt: SYSTEM_PROMPT,
+        apiKey,
+        endpoint,
+        model,
       })
       
       updateMessage(assistantMessageId, {
@@ -201,6 +207,9 @@ export function AIChatPanel({ className }: AIChatPanelProps) {
         return { success: true, message: `${params.type} 已更新` }
       case 'suggest_next':
         return '建议继续添加更多场景和对话'
+      case 'web_search':
+        toast.info(`正在搜索: ${params.query.substring(0, 40)}...`)
+        return { success: true, message: '搜索请求已提交' }
       default:
         throw new Error(`未知工具: ${tool}`)
     }

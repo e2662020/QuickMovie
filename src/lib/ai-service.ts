@@ -12,12 +12,18 @@ export interface AIGenerateOptions {
   messages: ChatMessage[]
   systemPrompt?: string
   temperature?: number
+  apiKey?: string
+  endpoint?: string
+  model?: string
 }
 
 export interface AIEnhanceScriptOptions {
   originalScript: string
   style?: 'professional' | 'casual' | 'dramatic' | 'comedic'
   enhancement?: 'dialogue' | 'description' | 'both'
+  apiKey?: string
+  endpoint?: string
+  model?: string
 }
 
 export interface AISuggestShotOptions {
@@ -208,6 +214,40 @@ class AIService {
       return result.content
     } catch (error: any) {
       toast.error(error.message || '场景描述生成失败')
+      throw error
+    }
+  }
+
+  async webSearch(options: {
+    query: string
+    endpoint?: string
+    apiKey?: string
+  }): Promise<{
+    results: Array<{
+      title: string
+      url: string
+      snippet: string
+      publishedDate?: string
+      source?: string
+    }>
+    totalResults?: number
+    searchTime?: number
+  }> {
+    try {
+      const result = await this.makeRequest<{
+        results: Array<{
+          title: string
+          url: string
+          snippet: string
+          publishedDate?: string
+          source?: string
+        }>
+        totalResults?: number
+        searchTime?: number
+      }>('/web-search', options)
+      return result
+    } catch (error: any) {
+      toast.error(error.message || '网络搜索失败')
       throw error
     }
   }

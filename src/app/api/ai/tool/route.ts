@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { ZAI } from 'z-ai-web-dev-sdk'
+import ZAI from 'z-ai-web-dev-sdk'
 import { SYSTEM_PROMPT } from '@/lib/ai-prompts'
 
 export async function POST(request: NextRequest) {

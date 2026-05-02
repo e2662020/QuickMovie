@@ -284,8 +284,8 @@ export function AuthView() {
                     className="w-full mt-2"
                     disabled={loading}
                     onClick={() => {
-                      setLoginEmail('admin@test.com')
-                      setLoginPassword('123456')
+                      setLoginEmail('demo@quickmovie.com')
+                      setLoginPassword('demo123456')
                     }}
                   >
                     🔧 填入测试账号

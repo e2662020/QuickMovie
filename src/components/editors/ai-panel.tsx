@@ -30,7 +30,10 @@ export function AIPanel({ onEnhance }: AIPanelProps) {
   const [loading, setLoading] = useState(false)
   const [loadingAction, setLoadingAction] = useState<string | null>(null)
   const { hasAIKey } = useAI()
-  const { currentScriptFile, files } = useAppStore()
+  const { currentScriptFile, files, personalApiKey, personalEndpoint, personalModel, teamApiKey, teamEndpoint, teamModel } = useAppStore()
+  const apiKey = teamApiKey || personalApiKey
+  const endpoint = teamEndpoint || personalEndpoint
+  const model = teamModel || personalModel
 
   const scriptContent = React.useMemo(() => {
     if (!currentScriptFile) return ''
@@ -74,6 +77,9 @@ export function AIPanel({ onEnhance }: AIPanelProps) {
         originalScript: scriptContent,
         style: 'professional',
         enhancement: type,
+        apiKey,
+        endpoint,
+        model,
       })
       onEnhance(enhanced)
       toast.success('剧本润色完成')

@@ -26,14 +26,18 @@ model User {
 
 // ============ Team System ============
 model Team {
-  id         String   @id @default(cuid())
-  name       String
-  icon       String?
-  inviteCode String   @unique
-  ownerId    String
-  aiApiKey   String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  name               String
+  icon               String?
+  inviteCode         String   @unique
+  ownerId            String
+  aiApiKey           String?
+  aiEndpoint         String?
+  aiModel            String?
+  webSearchEndpoint  String?
+  webSearchApiKey    String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   owner   User          @relation(fields: [ownerId], references: [id])
   members TeamMember[]

@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import { toast } from 'sonner'
+import { aiService } from '@/lib/ai-service'
+import { useAppStore } from '@/lib/store'
 
 export interface AIMessage {
   id: string
@@ -165,20 +167,73 @@ export function useAIAssistant() {
     const { currentContext } = store
     const hasScript = !!currentContext.script
     const hasStoryboard = !!currentContext.storyboard
-    
+
     if (!hasScript && !hasStoryboard) {
       return '建议先创建一个剧本或故事板，然后我可以帮助你继续创作。'
     }
-    
+
     if (!hasScript) {
       return '故事板已有内容，建议下一步创建对应的剧本，完善台词和场景描述。'
     }
-    
+
     if (!hasStoryboard) {
       return '剧本已有内容，建议下一步创建故事板，将文字内容可视化。'
     }
-    
+
     return '当前剧本和故事板都有内容，建议继续丰富细节或添加新的场景。'
+  }
+
+  const webSearch = async (query: string): Promise<string> => {
+    if (!query || query.trim().length === 0) {
+      throw new Error('搜索关键词不能为空')
+    }
+
+    try {
+      const {
+        webSearchEndpoint,
+        webSearchApiKey,
+        teamWebSearchEndpoint,
+        teamWebSearchApiKey,
+      } = useAppStore.getState()
+
+      const endpoint = teamWebSearchEndpoint || webSearchEndpoint || undefined
+      const apiKey = teamWebSearchApiKey || webSearchApiKey || undefined
+
+      if (!apiKey) {
+        throw new Error('请先在设置中配置网络搜索 API Key')
+      }
+
+      const result = await aiService.webSearch({
+        query: query.trim(),
+        endpoint,
+        apiKey,
+      })
+
+      if (!result.results || result.results.length === 0) {
+        return '未找到相关搜索结果，请尝试调整搜索关键词。'
+      }
+
+      const formattedResults = result.results
+        .slice(0, 8)
+        .map((r, i) => {
+          const parts: string[] = []
+          parts.push(`${i + 1}. **${r.title}**`)
+          if (r.url) parts.push(`   链接: ${r.url}`)
+          parts.push(`   摘要: ${r.snippet}`)
+          if (r.source) parts.push(`   来源: ${r.source}`)
+          return parts.join('\n')
+        })
+        .join('\n\n')
+
+      const header = `网络搜索结果 (共 ${result.totalResults || result.results.length} 条`
+        + (result.searchTime ? `，耗时 ${result.searchTime}ms` : '')
+        + ')：\n\n'
+
+      return header + formattedResults
+    } catch (error: any) {
+      toast.error(error.message || '网络搜索失败')
+      throw error
+    }
   }
   
   const executeToolCall = async (tool: string, params: Record<string, any>): Promise<any> => {
@@ -199,6 +254,8 @@ export function useAIAssistant() {
         return await updateElement(params.type, params.id, params.updates)
       case 'suggest_next':
         return await suggestNext(params.focus)
+      case 'web_search':
+        return await webSearch(params.query)
       default:
         throw new Error(`Unknown tool: ${tool}`)
     }
@@ -215,5 +272,6 @@ export function useAIAssistant() {
     addDialogue,
     updateElement,
     suggestNext,
+    webSearch,
   }
 }

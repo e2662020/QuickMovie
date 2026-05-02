@@ -107,7 +107,15 @@ interface AppState {
   pageBg: string
   darkMode: boolean
   personalApiKey: string | null
+  personalEndpoint: string | null
+  personalModel: string | null
   teamApiKey: string | null
+  teamEndpoint: string | null
+  teamModel: string | null
+  webSearchEndpoint: string | null
+  webSearchApiKey: string | null
+  teamWebSearchEndpoint: string | null
+  teamWebSearchApiKey: string | null
 
   // Actions
   setUser: (user: User | null) => void
@@ -128,7 +136,15 @@ interface AppState {
   setPageBg: (bg: string) => void
   setDarkMode: (dark: boolean) => void
   setPersonalApiKey: (key: string | null) => void
+  setPersonalEndpoint: (endpoint: string | null) => void
+  setPersonalModel: (model: string | null) => void
   setTeamApiKey: (key: string | null) => void
+  setTeamEndpoint: (endpoint: string | null) => void
+  setTeamModel: (model: string | null) => void
+  setWebSearchEndpoint: (endpoint: string | null) => void
+  setWebSearchApiKey: (key: string | null) => void
+  setTeamWebSearchEndpoint: (endpoint: string | null) => void
+  setTeamWebSearchApiKey: (key: string | null) => void
   reset: () => void
 }
 
@@ -164,7 +180,15 @@ export const useAppStore = create<AppState>()(
       pageBg: typeof window !== 'undefined' ? localStorage.getItem('script-editor-bg') || 'white' : 'white',
       darkMode: false,
       personalApiKey: null,
+      personalEndpoint: null,
+      personalModel: null,
       teamApiKey: null,
+      teamEndpoint: null,
+      teamModel: null,
+      webSearchEndpoint: null,
+      webSearchApiKey: null,
+      teamWebSearchEndpoint: null,
+      teamWebSearchApiKey: null,
 
       // Actions
       setUser: (user) => set({ user }),
@@ -196,7 +220,15 @@ export const useAppStore = create<AppState>()(
       },
       setDarkMode: (dark) => set({ darkMode: dark }),
       setPersonalApiKey: (key) => set({ personalApiKey: key }),
+      setPersonalEndpoint: (endpoint) => set({ personalEndpoint: endpoint }),
+      setPersonalModel: (model) => set({ personalModel: model }),
       setTeamApiKey: (key) => set({ teamApiKey: key }),
+      setTeamEndpoint: (endpoint) => set({ teamEndpoint: endpoint }),
+      setTeamModel: (model) => set({ teamModel: model }),
+      setWebSearchEndpoint: (endpoint) => set({ webSearchEndpoint: endpoint }),
+      setWebSearchApiKey: (key) => set({ webSearchApiKey: key }),
+      setTeamWebSearchEndpoint: (endpoint) => set({ teamWebSearchEndpoint: endpoint }),
+      setTeamWebSearchApiKey: (key) => set({ teamWebSearchApiKey: key }),
       reset: () => set({
         user: null,
         token: null,
@@ -215,6 +247,11 @@ export const useAppStore = create<AppState>()(
       name: 'quick-storyboard-storage',
       partialize: (state) => ({
         token: state.token,
+        personalApiKey: state.personalApiKey,
+        personalEndpoint: state.personalEndpoint,
+        personalModel: state.personalModel,
+        webSearchEndpoint: state.webSearchEndpoint,
+        webSearchApiKey: state.webSearchApiKey,
       }),
     }
   )
