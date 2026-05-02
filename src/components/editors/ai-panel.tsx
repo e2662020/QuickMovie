@@ -45,8 +45,6 @@ export function AIPanel({ onEnhance }: AIPanelProps) {
             if (block.type === 'scene-heading') return `\n【${block.content}】\n`
             if (block.type === 'action') return block.content + '\n'
             if (block.type === 'dialogue') return `${block.character}:\n${block.content}\n`
-            if (block.type === 'parenthetical') return `(${block.content}) `
-            if (block.type === 'transition') return `\n${block.content}\n`
             return block.content
           })
           .join('\n')
