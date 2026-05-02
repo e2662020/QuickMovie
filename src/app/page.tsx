@@ -7,6 +7,7 @@ import { AuthView } from '@/components/views/auth'
 import { DashboardView } from '@/components/views/dashboard'
 import { BoardWorkspace } from '@/components/views/board-workspace'
 import { InviteView } from '@/components/views/invite'
+import { AIChatPanel } from '@/components/ai/chat-panel'
 import { Loader2 } from 'lucide-react'
 
 export default function Home() {
@@ -73,6 +74,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {renderView()}
+      <AIChatPanel />
     </div>
   )
 }
