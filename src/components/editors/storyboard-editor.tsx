@@ -209,20 +209,10 @@ function StoryMindMap({ boardId, token }: { boardId: string; token: string | nul
   const [nodes, setNodes] = useState<MindMapNode[]>([])
   const [connections, setConnections] = useState<MindMapConnection[]>([])
   const [loading, setLoading] = useState(true)
-  const [draggingId, setDraggingId] = useState<string | null>(null)
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
-  const [connectingFrom, setConnectingFrom] = useState<string | null>(null)
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 })
-  const [editingNode, setEditingNode] = useState<string | null>(null)
-  const [editingTitle, setEditingTitle] = useState('')
-  const [newNodeTitle, setNewNodeTitle] = useState('')
-  const [showNewNode, setShowNewNode] = useState(false)
-  const svgRef = useRef<SVGSVGElement>(null)
 
-  // Load nodes
   useEffect(() => {
     let cancelled = false
-    setLoading(true) // eslint-disable-line react-hooks/set-state-in-effect
+    setLoading(true)
     fetchElements(boardId, 'mind_map', token)
       .then((elements) => {
         if (cancelled) return
@@ -234,12 +224,12 @@ function StoryMindMap({ boardId, token }: { boardId: string; token: string | nul
             y: pos.y || Math.random() * 400 + 50,
             title: el.name,
             color: el.color || NODE_COLORS[Math.floor(Math.random() * NODE_COLORS.length)],
+            type: 'default',
             elementId: el.id,
           }
         })
         setNodes(mapNodes)
 
-        // Parse connections from element content
         const allConns: MindMapConnection[] = []
         elements.forEach((el) => {
           if (el.content) {
@@ -264,180 +254,82 @@ function StoryMindMap({ boardId, token }: { boardId: string; token: string | nul
     return () => { cancelled = true }
   }, [boardId, token])
 
-  // Save connections to the first node (or create a dedicated node)
-  const saveConnections = useCallback(async (conns: MindMapConnection[]) => {
-    if (nodes.length === 0) return
-    try {
-      // Store connections in the first node's content
-      const firstNode = nodes[0]
-      await updateElement(firstNode.id, token, {
-        content: JSON.stringify({ connections: conns }),
-      })
-    } catch {
-      // Silent fail for connections
+  const handleNodesChange = useCallback(async (newNodes: MindMapNode[]) => {
+    setNodes(newNodes)
+    for (const node of newNodes) {
+      if (node.elementId) {
+        await updateElement(node.elementId, token, {
+          name: node.title,
+          color: node.color,
+          position: JSON.stringify({ x: node.x, y: node.y }),
+        })
+      }
+    }
+  }, [token])
+
+  const handleConnectionsChange = useCallback(async (newConns: MindMapConnection[]) => {
+    setConnections(newConns)
+    if (nodes.length > 0) {
+      await updateElement(nodes[0].elementId || nodes[0].id, token, {
+        content: JSON.stringify({ connections: newConns }),
+      }).catch(() => {/* silent */})
     }
   }, [nodes, token])
 
-  // Add node
-  const handleAddNode = useCallback(async () => {
-    const title = newNodeTitle.trim() || `节点 ${nodes.length + 1}`
+  const handleAddNode = useCallback(async (type: MindMapNode['type'] = 'default') => {
     try {
-      const el = await createElement(boardId, 'mind_map', title, token, {
-        color: NODE_COLORS[nodes.length % NODE_COLORS.length],
-        position: JSON.stringify({ x: 100 + Math.random() * 400, y: 80 + Math.random() * 300 }),
+      const el = await createElement(boardId, 'mind_map', `新${type === 'character' ? '角色' : type === 'scene' ? '场景' : type === 'event' ? '事件' : '节点'}`, token, {
+        color: NODE_COLORS[type],
+        position: JSON.stringify({ x: 400 + Math.random() * 100, y: 300 + Math.random() * 100 }),
       })
       const pos = parsePosition(el.position)
       const newNode: MindMapNode = {
         id: el.id,
-        x: pos.x || 100 + Math.random() * 400,
-        y: pos.y || 80 + Math.random() * 300,
+        x: pos.x || 400,
+        y: pos.y || 300,
         title: el.name,
-        color: el.color || NODE_COLORS[nodes.length % NODE_COLORS.length],
+        color: el.color || NODE_COLORS[type],
+        type,
         elementId: el.id,
       }
       setNodes((prev) => [...prev, newNode])
-      setNewNodeTitle('')
-      setShowNewNode(false)
       toast.success('节点已添加')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : '添加失败')
     }
-  }, [boardId, token, newNodeTitle, nodes.length])
+  }, [boardId, token])
 
-  // Delete node
-  const handleDeleteNode = useCallback(async (nodeId: string) => {
-    try {
-      await deleteElement(nodeId, token)
-      setNodes((prev) => prev.filter((n) => n.id !== nodeId))
-      setConnections((prev) =>
-        prev.filter((c) => c.from !== nodeId && c.to !== nodeId)
-      )
-      toast.success('节点已删除')
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : '删除失败')
-    }
-  }, [token])
-
-  // Update node position
-  const handleUpdatePosition = useCallback(async (nodeId: string, x: number, y: number) => {
-    try {
-      await updateElement(nodeId, token, {
-        position: JSON.stringify({ x, y }),
-      })
-    } catch {
-      // Silent fail
-    }
-  }, [token])
-
-  // Update node title
-  const handleUpdateTitle = useCallback(async (nodeId: string, title: string) => {
-    try {
-      await updateElement(nodeId, token, { name: title })
-      setNodes((prev) =>
-        prev.map((n) => (n.id === nodeId ? { ...n, title } : n))
-      )
-      setEditingNode(null)
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : '更新失败')
-    }
-  }, [token])
-
-  // Drag handlers
-  const handleMouseDown = useCallback((e: React.MouseEvent, node: MindMapNode) => {
-    if (connectingFrom) return
-    const svgRect = svgRef.current?.getBoundingClientRect()
-    if (!svgRect) return
-    setDraggingId(node.id)
-    setDragOffset({
-      x: e.clientX - svgRect.left - node.x,
-      y: e.clientY - svgRect.top - node.y,
-    })
-  }, [connectingFrom])
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const svgRect = svgRef.current?.getBoundingClientRect()
-    if (!svgRect) return
-    const mx = e.clientX - svgRect.left
-    const my = e.clientY - svgRect.top
-    setMousePos({ x: mx, y: my })
-
-    if (draggingId) {
-      const newX = Math.max(0, Math.min(mx - dragOffset.x, 1200))
-      const newY = Math.max(0, Math.min(my - dragOffset.y, 800))
-      setNodes((prev) =>
-        prev.map((n) => (n.id === draggingId ? { ...n, x: newX, y: newY } : n))
-      )
-    }
-  }, [draggingId, dragOffset])
-
-  const handleMouseUp = useCallback(() => {
-    if (draggingId) {
-      const node = nodes.find((n) => n.id === draggingId)
-      if (node) {
-        handleUpdatePosition(node.id, node.x, node.y)
-      }
-      setDraggingId(null)
-    }
-    if (connectingFrom) {
-      setConnectingFrom(null)
-    }
-  }, [draggingId, connectingFrom, nodes, handleUpdatePosition])
-
-  // Connection mode: right-click / double-click on node to start connection
-  const handleNodeDoubleClick = useCallback((nodeId: string) => {
-    if (connectingFrom) {
-      if (connectingFrom !== nodeId) {
-        const exists = connections.some(
-          (c) =>
-            (c.from === connectingFrom && c.to === nodeId) ||
-            (c.from === nodeId && c.to === connectingFrom)
-        )
-        if (!exists) {
-          const newConns = [...connections, { from: connectingFrom, to: nodeId }]
-          setConnections(newConns)
-          saveConnections(newConns)
-          toast.success('连接已创建')
-        }
-      }
-      setConnectingFrom(null)
-    }
-  }, [connectingFrom, connections, saveConnections])
-
-  // Start connection from a node
-  const handleStartConnect = useCallback((e: React.MouseEvent, nodeId: string) => {
-    e.stopPropagation()
-    if (connectingFrom === nodeId) {
-      setConnectingFrom(null)
-    } else {
-      setConnectingFrom(nodeId)
-    }
-  }, [connectingFrom])
-
-  // Empty state
-  if (!loading && nodes.length === 0) {
+  if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="text-slate-400">加载中...</div>
+      </div>
+    )
+  }
+
+  if (nodes.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
         <div className="text-center space-y-4">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/50">
-            <GitBranch className="h-8 w-8 text-muted-foreground/50" />
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-800/50">
+            <GitBranch className="h-8 w-8 text-slate-500" />
           </div>
           <div>
-            <p className="text-sm font-medium text-muted-foreground">故事导图</p>
-            <p className="mt-1 text-xs text-muted-foreground/70">
-              创建节点来构建你的故事结构
-            </p>
+            <p className="text-sm font-medium text-slate-400">故事导图</p>
+            <p className="mt-1 text-xs text-slate-500">创建节点来构建你的故事结构</p>
           </div>
           <div className="flex items-center gap-2 justify-center">
-            <Input
-              value={newNodeTitle}
-              onChange={(e) => setNewNodeTitle(e.target.value)}
-              placeholder="输入节点名称..."
-              className="w-48 h-8 text-sm"
-              onKeyDown={(e) => e.key === 'Enter' && handleAddNode()}
-            />
-            <Button size="sm" onClick={handleAddNode} className="h-8 gap-1.5">
-              <Plus className="h-3.5 w-3.5" />
-              添加
+            <Button size="sm" onClick={() => handleAddNode('character')} className="h-8 gap-1.5 bg-blue-600 hover:bg-blue-700">
+              <Users className="h-3.5 w-3.5" />
+              角色
+            </Button>
+            <Button size="sm" onClick={() => handleAddNode('scene')} className="h-8 gap-1.5 bg-emerald-600 hover:bg-emerald-700">
+              <MapPin className="h-3.5 w-3.5" />
+              场景
+            </Button>
+            <Button size="sm" onClick={() => handleAddNode('event')} className="h-8 gap-1.5 bg-amber-600 hover:bg-amber-700">
+              <Zap className="h-3.5 w-3.5" />
+              事件
             </Button>
           </div>
         </div>
@@ -446,225 +338,12 @@ function StoryMindMap({ boardId, token }: { boardId: string; token: string | nul
   }
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Toolbar */}
-      <div className="flex items-center gap-2 border-b px-4 py-2">
-        <div className="flex items-center gap-2 flex-1">
-          <Input
-            value={newNodeTitle}
-            onChange={(e) => setNewNodeTitle(e.target.value)}
-            placeholder="新节点名称..."
-            className="w-48 h-8 text-sm"
-            onKeyDown={(e) => e.key === 'Enter' && handleAddNode()}
-            onFocus={() => setShowNewNode(true)}
-          />
-          <Button size="sm" onClick={handleAddNode} className="h-8 gap-1.5">
-            <Plus className="h-3.5 w-3.5" />
-            添加节点
-          </Button>
-        </div>
-        {connectingFrom && (
-          <Badge variant="outline" className="text-xs gap-1">
-            <GitBranch className="h-3 w-3" />
-            点击目标节点完成连接 · 按 Esc 取消
-          </Badge>
-        )}
-        <Button
-          size="sm"
-          variant={connectingFrom ? 'default' : 'ghost'}
-          className="h-8 gap-1.5 text-xs"
-          onClick={() => setConnectingFrom(connectingFrom ? null : '')}
-        >
-          <GitBranch className="h-3.5 w-3.5" />
-          连接模式
-        </Button>
-      </div>
-
-      {/* SVG Canvas */}
-      <div className="flex-1 overflow-auto bg-muted/20 p-2">
-        {loading ? (
-          <div className="flex h-full items-center justify-center">
-            <p className="text-sm text-muted-foreground">加载中...</p>
-          </div>
-        ) : (
-          <svg
-            ref={svgRef}
-            className="h-full w-full min-h-[600px] min-w-[800px]"
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onDoubleClick={() => {
-              if (connectingFrom) setConnectingFrom(null)
-            }}
-          >
-            <defs>
-              <marker
-                id="arrowhead"
-                markerWidth="10"
-                markerHeight="7"
-                refX="10"
-                refY="3.5"
-                orient="auto"
-              >
-                <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
-              </marker>
-            </defs>
-
-            {/* Connection lines */}
-            {connections.map((conn, i) => {
-              const fromNode = nodes.find((n) => n.id === conn.from)
-              const toNode = nodes.find((n) => n.id === conn.to)
-              if (!fromNode || !toNode) return null
-              return (
-                <line
-                  key={`conn-${i}`}
-                  x1={fromNode.x + 60}
-                  y1={fromNode.y + 20}
-                  x2={toNode.x + 60}
-                  y2={toNode.y + 20}
-                  stroke="#94a3b8"
-                  strokeWidth={2}
-                  markerEnd="url(#arrowhead)"
-                  opacity={0.6}
-                />
-              )
-            })}
-
-            {/* Connecting line preview */}
-            {connectingFrom && (() => {
-              const fromNode = nodes.find((n) => n.id === connectingFrom)
-              if (!fromNode) return null
-              return (
-                <line
-                  x1={fromNode.x + 60}
-                  y1={fromNode.y + 20}
-                  x2={mousePos.x}
-                  y2={mousePos.y}
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  strokeDasharray="6,4"
-                  opacity={0.8}
-                />
-              )
-            })()}
-
-            {/* Nodes */}
-            {nodes.map((node) => (
-              <g
-                key={node.id}
-                transform={`translate(${node.x}, ${node.y})`}
-                onMouseDown={(e) => handleMouseDown(e, node)}
-                onDoubleClick={() => handleNodeDoubleClick(node.id)}
-                className={cn(
-                  'cursor-grab select-none',
-                  draggingId === node.id && 'cursor-grabbing',
-                  connectingFrom === node.id && 'ring-2 ring-blue-400 ring-offset-2 rounded-lg'
-                )}
-                style={{ filter: draggingId === node.id ? 'drop-shadow(0 4px 12px rgba(0,0,0,0.15))' : 'none' }}
-              >
-                {/* Node rectangle */}
-                <rect
-                  x={0}
-                  y={0}
-                  width={120}
-                  height={40}
-                  rx={8}
-                  ry={8}
-                  fill={node.color}
-                  opacity={0.9}
-                  stroke={connectingFrom === node.id ? '#3b82f6' : 'rgba(255,255,255,0.2)'}
-                  strokeWidth={connectingFrom === node.id ? 2 : 1}
-                />
-
-                {/* Node title */}
-                {editingNode === node.id ? (
-                  <foreignObject x={4} y={4} width={112} height={32}>
-                    <input
-                      autoFocus
-                      value={editingTitle}
-                      onChange={(e) => setEditingTitle(e.target.value)}
-                      onBlur={() => handleUpdateTitle(node.id, editingTitle || node.title)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleUpdateTitle(node.id, editingTitle || node.title)
-                        if (e.key === 'Escape') setEditingNode(null)
-                      }}
-                      className="w-full h-full bg-white/90 rounded px-1 text-xs text-center outline-none text-gray-900"
-                    />
-                  </foreignObject>
-                ) : (
-                  <text
-                    x={60}
-                    y={22}
-                    textAnchor="middle"
-                    dominantBaseline="middle"
-                    fill="white"
-                    fontSize={12}
-                    fontWeight={500}
-                    className="pointer-events-none"
-                  >
-                    {node.title.length > 10 ? node.title.slice(0, 10) + '…' : node.title}
-                  </text>
-                )}
-
-                {/* Edit button */}
-                <g
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setEditingNode(node.id)
-                    setEditingTitle(node.title)
-                  }}
-                  className="cursor-pointer opacity-0 hover:opacity-100 transition-opacity"
-                  style={{ opacity: 0 }}
-                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.opacity = '0' }}
-                >
-                  <circle cx={108} cy={8} r={8} fill="rgba(255,255,255,0.3)" />
-                  <text x={108} y={8} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={10}>
-                    ✏️
-                  </text>
-                </g>
-
-                {/* Connect button */}
-                <g
-                  onClick={(e) => handleStartConnect(e, node.id)}
-                  className="cursor-pointer"
-                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.opacity = connectingFrom === node.id ? '1' : '0.5' }}
-                >
-                  <circle cx={108} cy={32} r={8} fill="rgba(255,255,255,0.3)" />
-                  <text x={108} y={32} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={10}>
-                    🔗
-                  </text>
-                </g>
-
-                {/* Delete button */}
-                <g
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleDeleteNode(node.id)
-                  }}
-                  className="cursor-pointer"
-                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
-                  onMouseLeave={(e) => { e.currentTarget.style.opacity = '0' }}
-                >
-                  <circle cx={12} cy={8} r={8} fill="rgba(239,68,68,0.7)" />
-                  <text x={12} y={8} textAnchor="middle" dominantBaseline="middle" fill="white" fontSize={10}>
-                    ✕
-                  </text>
-                </g>
-              </g>
-            ))}
-          </svg>
-        )}
-      </div>
-
-      {/* Legend */}
-      <div className="flex items-center gap-4 border-t px-4 py-1.5 text-[11px] text-muted-foreground">
-        <span className="flex items-center gap-1"><Grip className="h-3 w-3" /> 拖拽移动</span>
-        <span>双击完成连接</span>
-        <span>点击🔗图标开始连接</span>
-        <span className="ml-auto">{nodes.length} 个节点 · {connections.length} 条连线</span>
-      </div>
-    </div>
+    <MindMapCanvas
+      nodes={nodes}
+      connections={connections}
+      onNodesChange={handleNodesChange}
+      onConnectionsChange={handleConnectionsChange}
+    />
   )
 }
 
