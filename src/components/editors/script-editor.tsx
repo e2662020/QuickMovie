@@ -46,6 +46,7 @@ import {
   Hash,
   Clapperboard,
 } from 'lucide-react'
+import { AIPanel } from './ai-panel'
 
 export type BlockType =
   | 'scene_heading'
