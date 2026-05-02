@@ -245,15 +245,6 @@ Each rule includes:
 
 ## Installation
 
-### Using Claude Marketplace (Claude Code)
-
-Install directly in Claude Code with two commands:
-
-```
-/plugin marketplace add nextlevelbuilder/ui-ux-pro-max-skill
-/plugin install ui-ux-pro-max@ui-ux-pro-max-skill
-```
-
 ### Using CLI (Recommended)
 
 ```bash
@@ -264,7 +255,6 @@ npm install -g uipro-cli
 cd /path/to/your/project
 
 # Install for your AI assistant
-uipro init --ai claude      # Claude Code
 uipro init --ai cursor      # Cursor
 uipro init --ai windsurf    # Windsurf
 uipro init --ai antigravity # Antigravity
@@ -311,15 +301,13 @@ winget install Python.Python.3.12
 
 ### Skill Mode (Auto-activate)
 
-**Supported:** Claude Code, Windsurf, Antigravity, Codex CLI, Continue, Gemini CLI, OpenCode, Qoder, CodeBuddy
+**Supported:** Windsurf, Antigravity, Codex CLI, Continue, Gemini CLI, OpenCode, Qoder, CodeBuddy
 
 The skill activates automatically when you request UI/UX work. Just chat naturally:
 
 ```
 Build a landing page for my SaaS product
 ```
-
-> **Trae**: Switch to **SOLO** mode first. The skill will activate for UI/UX requests.
 
 ### Workflow Mode (Slash Command)
 
@@ -373,23 +361,23 @@ Just mention your preferred stack in the prompt, or let it default to HTML + Tai
 
 For direct access to the design system generator:
 
-> Note: If you installed via Continue, replace `.claude/skills/` with `.continue/skills/` in the commands below.
+> Note: If you installed via Continue, replace the directory path with your AI assistant's skills directory.
 
 ```bash
 # Generate design system with ASCII output
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "beauty spa wellness" --design-system -p "Serenity Spa"
+python3 skills/ui-ux-pro-max/scripts/search.py "beauty spa wellness" --design-system -p "Serenity Spa"
 
 # Generate with Markdown output
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "fintech banking" --design-system -f markdown
+python3 skills/ui-ux-pro-max/scripts/search.py "fintech banking" --design-system -f markdown
 
 # Domain-specific search
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "glassmorphism" --domain style
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "elegant serif" --domain typography
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "dashboard" --domain chart
+python3 skills/ui-ux-pro-max/scripts/search.py "glassmorphism" --domain style
+python3 skills/ui-ux-pro-max/scripts/search.py "elegant serif" --domain typography
+python3 skills/ui-ux-pro-max/scripts/search.py "dashboard" --domain chart
 
 # Stack-specific guidelines
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "form validation" --stack react
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "responsive layout" --stack html-tailwind
+python3 skills/ui-ux-pro-max/scripts/search.py "form validation" --stack react
+python3 skills/ui-ux-pro-max/scripts/search.py "responsive layout" --stack html-tailwind
 ```
 
 ### Persist Design System (Master + Overrides Pattern)
@@ -398,10 +386,10 @@ Save your design system to files for **hierarchical retrieval across sessions**:
 
 ```bash
 # Generate and persist to design-system/MASTER.md
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "SaaS dashboard" --design-system --persist -p "MyApp"
+python3 skills/ui-ux-pro-max/scripts/search.py "SaaS dashboard" --design-system --persist -p "MyApp"
 
 # Also create a page-specific override file
-python3 .claude/skills/ui-ux-pro-max/scripts/search.py "SaaS dashboard" --design-system --persist -p "MyApp" --page "dashboard"
+python3 skills/ui-ux-pro-max/scripts/search.py "SaaS dashboard" --design-system --persist -p "MyApp" --page "dashboard"
 ```
 
 This creates a `design-system/` folder structure:
@@ -454,7 +442,6 @@ cd ui-ux-pro-max-skill
 # 2. Understand the structure
 src/ui-ux-pro-max/           # Source of truth (data, scripts, templates)
 cli/                         # CLI installer (generates files from templates)
-.claude/                     # Local dev/test for Claude Code skill
 
 # 3. Make changes in src/ui-ux-pro-max/
 # - data/*.csv              → Database files
@@ -468,7 +455,7 @@ cp -r src/ui-ux-pro-max/templates/* cli/assets/templates/
 
 # 5. Build and test CLI
 cd cli && bun run build
-node dist/index.js init --ai claude --offline  # Test in a temp folder
+node dist/index.js init --ai trae --offline  # Test in a temp folder
 
 # 6. Create PR (never push directly to main)
 git checkout -b feat/your-feature
@@ -476,8 +463,6 @@ git commit -m "feat: description"
 git push -u origin feat/your-feature
 gh pr create
 ```
-
-See [CLAUDE.md](CLAUDE.md) for detailed development guidelines.
 
 ## Star History
 

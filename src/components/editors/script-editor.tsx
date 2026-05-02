@@ -46,14 +46,13 @@ import {
   Hash,
   Clapperboard,
 } from 'lucide-react'
+import { AIPanel } from './ai-panel'
 
 export type BlockType =
   | 'scene_heading'
   | 'action'
   | 'character'
   | 'dialogue'
-  | 'parenthetical'
-  | 'transition'
 
 export interface ScriptBlock {
   id: string
@@ -103,30 +102,13 @@ const BLOCK_TYPES: {
     description: '角色的台词内容',
     icon: <Type className="h-4 w-4" />,
     shortcut: 'Ctrl+Shift+4',
-  },
-  {
-    value: 'parenthetical',
-    label: '括号说明',
-    description: '角色的神态或动作说明，如：(叹气)',
-    icon: <Type className="h-4 w-4 opacity-60" />,
-    shortcut: '',
-  },
-  {
-    value: 'transition',
-    label: '转场',
-    description: '场景切换方式，如：CUT TO: / FADE OUT:',
-    icon: <ChevronDown className="h-4 w-4" />,
-    shortcut: '',
-  },
-]
+  },]
 
 const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   scene_heading: '场景',
   action: '动作',
   character: '角色',
   dialogue: '对话',
-  parenthetical: '说明',
-  transition: '转场',
 }
 
 const BLOCK_TYPE_CYCLE: BlockType[] = [
@@ -134,22 +116,8 @@ const BLOCK_TYPE_CYCLE: BlockType[] = [
   'action',
   'character',
   'dialogue',
-  'parenthetical',
-  'transition',
 ]
 
-const TRANSITION_SUGGESTIONS = [
-  'CUT TO:',
-  'DISSOLVE TO:',
-  'FADE IN:',
-  'FADE OUT.',
-  'FADE TO BLACK.',
-  'SMASH CUT TO:',
-  'MATCH CUT TO:',
-  'JUMP CUT TO:',
-  'TIME CUT:',
-  'INTERCUT:',
-]
 
 const SCENE_HEADING_TEMPLATE = '场景 - 内景/外景 - 时间'
 
@@ -196,7 +164,7 @@ function parseScriptContent(content: string | undefined): ScriptData {
       blocks: Array.isArray(parsed.blocks)
         ? parsed.blocks.map((b: Partial<ScriptBlock> & { id: string }) => ({
             id: b.id || generateId(),
-            type: (b.type && ['scene_heading', 'action', 'character', 'dialogue', 'parenthetical', 'transition'].includes(b.type)
+            type: (b.type && ['scene_heading', 'action', 'character', 'dialogue'].includes(b.type)
               ? b.type
               : 'action') as BlockType,
             content: typeof b.content === 'string' ? b.content : '',
@@ -235,9 +203,7 @@ function getPrecedingCharacterName(
     if (blocks[i].type === 'character') {
       return blocks[i].content.trim()
     }
-    if (blocks[i].type !== 'parenthetical') {
-      break
-    }
+    break
   }
   return ''
 }
@@ -485,9 +451,7 @@ const BLOCK_LAYOUT_STYLES: Record<BlockType, string> = {
   scene_heading: 'font-bold uppercase text-center tracking-wider text-sm leading-relaxed',
   action: 'text-sm leading-7',
   character: 'uppercase text-center font-semibold text-sm tracking-wider',
-  dialogue: 'text-center text-sm leading-relaxed pl-12 pr-12',
-  parenthetical: 'text-center text-xs italic leading-relaxed pl-16 pr-16',
-  transition: 'text-right uppercase text-xs tracking-widest font-semibold',
+  dialogue: 'text-left text-sm leading-relaxed pl-12 pr-12',
 }
 
 function ScriptBlockEditor({
@@ -655,7 +619,6 @@ function ScriptBlockEditor({
       className={cn(
         'group/script-block relative flex items-start gap-3 py-2 px-4 transition-colors',
         block.type === 'scene_heading' && 'mt-6 pt-3',
-        block.type === 'transition' && 'mb-2',
         isFocused && (isDarkBg ? 'bg-white/5' : 'bg-gray-50'),
         !isFocused && !isDarkBg && 'hover:bg-gray-50/60',
         !isFocused && isDarkBg && 'hover:bg-white/5',
@@ -691,8 +654,6 @@ function ScriptBlockEditor({
             'outline-none min-h-[1.5em] break-words whitespace-pre-wrap cursor-text font-sans',
             BLOCK_LAYOUT_STYLES[block.type],
             isDarkBg ? 'text-gray-200' : 'text-gray-800',
-            block.type === 'parenthetical' && (isDarkBg ? 'text-gray-400' : 'text-gray-500'),
-            block.type === 'transition' && (isDarkBg ? 'text-gray-400' : 'text-gray-500'),
             emphasisBlocks.has(block.id) && (isDarkBg ? 'text-amber-300' : 'text-amber-800'),
           )}
           onInput={handleInput}
@@ -709,11 +670,7 @@ function ScriptBlockEditor({
                   ? '角色名'
                   : block.type === 'dialogue'
                     ? '角色台词...'
-                    : block.type === 'parenthetical'
-                      ? '(神态/动作说明)'
-                      : block.type === 'transition'
-                        ? 'CUT TO:'
-                        : ''
+                    : ''
           }
           style={{ '--placeholder-color': isDarkBg ? 'rgba(200, 200, 200, 0.2)' : 'rgba(113, 113, 122, 0.3)' } as React.CSSProperties}
         />
@@ -1055,9 +1012,7 @@ export function ScriptEditor() {
           content ||
           (type === 'scene_heading'
             ? SCENE_HEADING_TEMPLATE
-            : type === 'parenthetical'
-              ? '()'
-              : ''),
+            : ''),
       }
       setData((prev) => {
         const idx = prev.blocks.findIndex((b) => b.id === afterId)
@@ -1073,16 +1028,6 @@ export function ScriptEditor() {
         )
         if (el instanceof HTMLElement) {
           el.focus()
-          if (type === 'parenthetical') {
-            const range = document.createRange()
-            const sel = window.getSelection()
-            if (el.firstChild) {
-              range.setStart(el.firstChild, 1)
-              range.collapse(true)
-              sel?.removeAllRanges()
-              sel?.addRange(range)
-            }
-          }
         }
       })
     },
@@ -1290,6 +1235,14 @@ export function ScriptEditor() {
 
         <div className="flex items-center gap-1">
           <ShortcutsDialog />
+
+          <AIPanel
+            onEnhance={(enhanced) => {
+              if (enhanced) {
+                toast.success('剧本已更新')
+              }
+            }}
+          />
 
           <TooltipProvider delayDuration={300}>
             <Tooltip>

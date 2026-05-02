@@ -67,4 +67,4 @@ npx clawhub@latest install interview-designer
 npx skills add mikonos/interview-designer
 ```
 
-Compatible with Cursor, Claude Code, OpenClaw, and other agents that support the skills protocol.
+Compatible with Cursor, OpenClaw, and other agents that support the skills protocol.
