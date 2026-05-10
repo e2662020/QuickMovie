@@ -242,10 +242,6 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
             previewSizeClasses[size],
             isImageUrl(value) && 'border-dashed'
           )}
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
         >
           {isImageUrl(value) ? (
             <>
@@ -271,12 +267,6 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
           ) : (
             <span>{value}</span>
           )}
-
-          {isDragging && (
-            <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-primary/20 z-10 backdrop-blur-[1px]">
-              <Upload className="h-5 w-5 text-primary animate-bounce" />
-            </div>
-          )}
         </div>
 
         {/* Buttons */}
@@ -294,13 +284,7 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80 p-0" align="start" side="bottom" sideOffset={8}>
-              <div
-                className="flex flex-col"
-                onDragEnter={handleDragEnter}
-                onDragLeave={handleDragLeave}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-              >
+              <div className="flex flex-col">
                 <div className="flex items-center gap-2 border-b p-3">
                   <div className="relative flex-1">
                     <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -378,7 +362,7 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
                 <div className="border-t p-3">
                   <div className="relative overflow-hidden rounded-md">
                     <button
-                      className="w-full h-8 px-3 flex items-center justify-center gap-1.5 text-xs bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-md transition-colors touch-manipulation select-none cursor-pointer"
+                      className="w-full h-8 px-3 flex items-center justify-center gap-1.5 text-xs bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-md transition-colors touch-manipulation select-none cursor-pointer active:bg-secondary/80"
                       type="button"
                     >
                       <ImagePlus className="h-3.5 w-3.5" />
@@ -403,7 +387,7 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
                     />
                   </div>
                   <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
-                    支持 JPG/PNG/GIF/WebP，最大 5MB · 拖拽图片即可上传
+                    支持 JPG/PNG/GIF/WebP，最大 5MB
                   </p>
                 </div>
               </div>
