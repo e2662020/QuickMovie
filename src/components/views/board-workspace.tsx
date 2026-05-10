@@ -684,6 +684,13 @@ export function BoardWorkspace() {
 
   const isMobile = useIsMobile()
 
+  // ── Redirect if no board selected ──
+  useEffect(() => {
+    if (!currentBoard) {
+      setView('dashboard')
+    }
+  }, [currentBoard, setView])
+
   // ── Local State ──
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -1058,7 +1065,10 @@ export function BoardWorkspace() {
   if (!currentBoard) {
     return (
       <div className="flex h-screen items-center justify-center" style={{ backgroundColor: getPageBgColor(pageBg) }}>
-        <Loader2 className={cn('h-6 w-6 animate-spin', pageBg === 'black' ? 'text-gray-400' : 'text-muted-foreground')} />
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className={cn('h-6 w-6 animate-spin', pageBg === 'black' ? 'text-gray-400' : 'text-muted-foreground')} />
+          <p className="text-sm text-muted-foreground">正在返回仪表盘…</p>
+        </div>
       </div>
     )
   }
