@@ -271,128 +271,115 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
 
         {/* Buttons */}
         <div className="flex flex-col gap-1.5">
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5"
-                type="button"
-              >
-                <Smile className="h-3.5 w-3.5" />
-                选择图标
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-0" align="start" side="bottom" sideOffset={8}>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2 border-b p-3">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      className="h-8 pl-8 text-sm"
-                      placeholder="搜索图标..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+          <div className="flex gap-1.5">
+            <Popover open={open} onOpenChange={setOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5"
+                  type="button"
+                >
+                  <Smile className="h-3.5 w-3.5" />
+                  选择图标
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="start" side="bottom" sideOffset={8}>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2 border-b p-3">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        className="h-8 pl-8 text-sm"
+                        placeholder="搜索图标..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {searchQuery.trim() ? (
-                  <ScrollArea className="h-64 p-3">
-                    {filteredEmojis.length > 0 ? (
-                      <div className="grid grid-cols-8 gap-1">
-                        {filteredEmojis.map((emoji) => (
-                          <button
-                            key={emoji}
-                            type="button"
-                            className={cn(
-                              'flex items-center justify-center rounded-md p-1 text-xl hover:bg-accent transition-colors',
-                              value === emoji && 'bg-primary/15 ring-1 ring-primary'
-                            )}
-                            onClick={() => { onChange(emoji); setOpen(false); setSearchQuery('') }}
+                  {searchQuery.trim() ? (
+                    <ScrollArea className="h-64 p-3">
+                      {filteredEmojis.length > 0 ? (
+                        <div className="grid grid-cols-8 gap-1">
+                          {filteredEmojis.map((emoji) => (
+                            <button
+                              key={emoji}
+                              type="button"
+                              className={cn(
+                                'flex items-center justify-center rounded-md p-1 text-xl hover:bg-accent transition-colors',
+                                value === emoji && 'bg-primary/15 ring-1 ring-primary'
+                              )}
+                              onClick={() => { onChange(emoji); setOpen(false); setSearchQuery('') }}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                          <Search className="h-8 w-8 mb-2 opacity-30" />
+                          <p className="text-sm">没有找到匹配的图标</p>
+                        </div>
+                      )}
+                    </ScrollArea>
+                  ) : (
+                    <Tabs defaultValue="smileys" className="w-full">
+                      <TabsList className="mx-1 mt-2 flex h-7 w-full flex-nowrap overflow-x-auto justify-start gap-0.5 bg-transparent p-0">
+                        {EMOJI_CATEGORIES.map((cat) => (
+                          <TabsTrigger
+                            key={cat.key}
+                            value={cat.key}
+                            className="h-7 px-2 text-xs data-[state=active]:bg-accent data-[state=active]:shadow-none"
                           >
-                            {emoji}
-                          </button>
+                            {cat.label}
+                          </TabsTrigger>
                         ))}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                        <Search className="h-8 w-8 mb-2 opacity-30" />
-                        <p className="text-sm">没有找到匹配的图标</p>
-                      </div>
-                    )}
-                  </ScrollArea>
-                ) : (
-                  <Tabs defaultValue="smileys" className="w-full">
-                    <TabsList className="mx-1 mt-2 flex h-7 w-full flex-nowrap overflow-x-auto justify-start gap-0.5 bg-transparent p-0">
+                      </TabsList>
                       {EMOJI_CATEGORIES.map((cat) => (
-                        <TabsTrigger
-                          key={cat.key}
-                          value={cat.key}
-                          className="h-7 px-2 text-xs data-[state=active]:bg-accent data-[state=active]:shadow-none"
-                        >
-                          {cat.label}
-                        </TabsTrigger>
+                        <TabsContent key={cat.key} value={cat.key} className="mt-0 pt-0">
+                          <ScrollArea className="h-52 px-3 pb-3">
+                            <div className="grid grid-cols-8 gap-0.5 pt-2">
+                              {cat.emojis.map((emoji) => (
+                                <button
+                                  key={emoji}
+                                  type="button"
+                                  className={cn(
+                                    'flex items-center justify-center rounded-md p-1 text-xl hover:bg-accent transition-colors',
+                                    value === emoji && 'bg-primary/15 ring-1 ring-primary'
+                                  )}
+                                  onClick={() => { onChange(emoji); setOpen(false) }}
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          </ScrollArea>
+                        </TabsContent>
                       ))}
-                    </TabsList>
-                    {EMOJI_CATEGORIES.map((cat) => (
-                      <TabsContent key={cat.key} value={cat.key} className="mt-0 pt-0">
-                        <ScrollArea className="h-52 px-3 pb-3">
-                          <div className="grid grid-cols-8 gap-0.5 pt-2">
-                            {cat.emojis.map((emoji) => (
-                              <button
-                                key={emoji}
-                                type="button"
-                                className={cn(
-                                  'flex items-center justify-center rounded-md p-1 text-xl hover:bg-accent transition-colors',
-                                  value === emoji && 'bg-primary/15 ring-1 ring-primary'
-                                )}
-                                onClick={() => { onChange(emoji); setOpen(false) }}
-                              >
-                                {emoji}
-                              </button>
-                            ))}
-                          </div>
-                        </ScrollArea>
-                      </TabsContent>
-                    ))}
-                  </Tabs>
-                )}
-
-                <div className="border-t p-3">
-                  <div className="relative overflow-hidden rounded-md">
-                    <button
-                      className="w-full h-8 px-3 flex items-center justify-center gap-1.5 text-xs bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-md transition-colors touch-manipulation select-none cursor-pointer active:bg-secondary/80"
-                      type="button"
-                    >
-                      <ImagePlus className="h-3.5 w-3.5" />
-                      上传自定义图片
-                    </button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                      onChange={handleFileChange}
-                      style={{
-                        opacity: 0,
-                        position: 'absolute',
-                        width: '100%',
-                        height: '100%',
-                        top: 0,
-                        left: 0,
-                        cursor: 'pointer',
-                        zIndex: 10
-                      }}
-                    />
-                  </div>
-                  <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
-                    支持 JPG/PNG/GIF/WebP，最大 5MB
-                  </p>
+                    </Tabs>
+                  )}
                 </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+              </PopoverContent>
+            </Popover>
+
+            <button
+              className="h-8 px-3 flex items-center justify-center gap-1.5 text-xs bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-md transition-colors touch-manipulation select-none cursor-pointer active:bg-secondary/80"
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <ImagePlus className="h-3.5 w-3.5" />
+              上传
+            </button>
+          </div>
+          
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+            className="fixed opacity-0 pointer-events-none w-0 h-0"
+            onChange={handleFileChange}
+          />
         </div>
       </div>
 
