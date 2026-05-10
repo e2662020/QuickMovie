@@ -416,6 +416,9 @@ function mockAPIPlugin(): Plugin {
           resp.headers.forEach((v, k) => respHeaders[k] = v)
           res.statusCode = resp.status
           res.setHeader('Content-Type', respHeaders['content-type'] || 'application/json; charset=utf-8')
+          if (respHeaders['set-cookie']) {
+            res.setHeader('Set-Cookie', respHeaders['set-cookie'])
+          }
           res.end(await resp.text())
         } else {
           next()
