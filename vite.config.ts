@@ -34,6 +34,57 @@ function mockAPIPlugin(): Plugin {
   interface DBResource { id: string; boardId: string; fileId: string | null; name: string; type: string; url: string; originalUrl: string | null; size: number; mimeType: string; createdAt: string }
   interface DBSession { token: string; userId: string }
 
+  const DB_FILE = path.resolve(__dirname, './db.json')
+  const UPLOADS_DIR = path.resolve(__dirname, './uploads')
+
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true })
+  }
+
+  function loadDB() {
+    try {
+      if (fs.existsSync(DB_FILE)) {
+        const raw = fs.readFileSync(DB_FILE, 'utf-8')
+        const data = JSON.parse(raw)
+        const teamMembers = new Map<string, DBMember[]>()
+        if (data.teamMembers) {
+          for (const [k, v] of Object.entries(data.teamMembers)) {
+            teamMembers.set(k, v as DBMember[])
+          }
+        }
+        return {
+          teams: data.teams || [],
+          teamMembers,
+          boards: data.boards || [],
+          boardFiles: data.boardFiles || [],
+          elements: data.elements || [],
+          resources: data.resources || [],
+          sessions: data.sessions || [],
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load db.json:', e)
+    }
+    return null
+  }
+
+  function saveDB() {
+    try {
+      const data = {
+        teams: db.teams,
+        teamMembers: Object.fromEntries(db.teamMembers),
+        boards: db.boards,
+        boardFiles: db.boardFiles,
+        elements: db.elements,
+        resources: db.resources,
+        sessions: db.sessions,
+      }
+      fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2))
+    } catch (e) {
+      console.error('Failed to save db.json:', e)
+    }
+  }
+
   function getUsers(): DBUser[] {
     const accounts = loadTestAccounts()
     return accounts.map((acc, idx) => ({
@@ -45,15 +96,53 @@ function mockAPIPlugin(): Plugin {
     }))
   }
 
+  const loaded = loadDB()
   const db = {
     get users() { return getUsers() },
-    teams: [] as DBTeam[],
-    teamMembers: new Map<string, DBMember[]>(),
-    boards: [] as DBBoard[],
-    boardFiles: [] as DBFile[],
-    elements: [] as DBElement[],
-    resources: [] as DBResource[],
-    sessions: [] as DBSession[],
+    teams: loaded?.teams || [] as DBTeam[],
+    teamMembers: loaded?.teamMembers || new Map<string, DBMember[]>(),
+    boards: loaded?.boards || [] as DBBoard[],
+    boardFiles: loaded?.boardFiles || [] as DBFile[],
+    elements: loaded?.elements || [] as DBElement[],
+    resources: loaded?.resources || [] as DBResource[],
+    sessions: loaded?.sessions || [] as DBSession[],
+  }
+
+  function isUploadUrl(url: string): boolean {
+    return url.startsWith('/uploads/')
+  }
+
+  function extractUploadId(url: string): string | null {
+    const match = url.match(/^\/uploads\/(.+)$/)
+    return match ? match[1] : null
+  }
+
+  function deleteUpload(url: string): void {
+    const id = extractUploadId(url)
+    if (id) {
+      const filePath = path.join(UPLOADS_DIR, id)
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath)
+      }
+    }
+  }
+
+  function deleteAllTeamData(teamId: string): void {
+    const boardIds = db.boards.filter(b => b.teamId === teamId).map(b => b.id)
+    for (const boardId of boardIds) {
+      const resources = db.resources.filter(r => r.boardId === boardId)
+      for (const res of resources) {
+        if (isUploadUrl(res.url)) deleteUpload(res.url)
+        if (res.originalUrl && isUploadUrl(res.originalUrl)) deleteUpload(res.originalUrl)
+      }
+      db.resources = db.resources.filter(r => r.boardId !== boardId)
+      db.boardFiles = db.boardFiles.filter(f => f.boardId !== boardId)
+      db.elements = db.elements.filter(e => e.boardId !== boardId)
+    }
+    db.boards = db.boards.filter(b => b.teamId !== teamId)
+    db.teamMembers.delete(teamId)
+    db.teams = db.teams.filter(t => t.id !== teamId)
+    saveDB()
   }
 
   function auth(headers: Record<string, string>) {
@@ -140,21 +229,26 @@ function mockAPIPlugin(): Plugin {
       const t: DBTeam = { id: 'team-' + uid(), name: body.name, icon: body.icon || '🎬', inviteCode: uid().substring(0, 8).toUpperCase(), ownerId: u.id }
       db.teams.push(t)
       db.teamMembers.set(t.id, [{ userId: u.id, name: u.name, email: u.email, role: 'owner', joinedAt: new Date().toISOString() }])
+      saveDB()
       return j({ team: { ...t, role: 'owner', memberCount: 1 } })
     }
     if (path === '/api/teams' && method === 'PATCH') {
       const t = db.teams.find(x => x.id === body.teamId)
       if (!t) return j({ error: '团队不存在' }, 404)
       if (body.name) t.name = body.name
-      if (body.icon) t.icon = body.icon
+      if (body.icon) {
+        if (t.icon && t.icon !== body.icon && isUploadUrl(t.icon)) deleteUpload(t.icon)
+        t.icon = body.icon
+      }
+      saveDB()
       return j({ team: t })
     }
     if (path === '/api/teams' && method === 'DELETE') {
       const tid = search.teamId
-      db.teams = db.teams.filter(t => t.id !== tid)
-      db.boards = db.boards.filter(b => b.teamId !== tid)
-      db.boardFiles = db.boardFiles.filter(f => db.boards.some(b => b.id === f.boardId))
-      db.teamMembers.delete(tid)
+      const t = db.teams.find(x => x.id === tid)
+      if (!t) return j({ error: '团队不存在' }, 404)
+      if (t.icon && isUploadUrl(t.icon)) deleteUpload(t.icon)
+      deleteAllTeamData(tid)
       return j({})
     }
 
@@ -290,7 +384,14 @@ function mockAPIPlugin(): Plugin {
     return null
   }
 
-  const uploadStore = new Map<string, { dataUrl: string; mimeType: string; size: number }>()
+  const MIME_MAP: Record<string, string> = {
+    'png': 'image/png',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'svg': 'image/svg+xml',
+  }
 
   return {
     name: 'mock-api',
@@ -299,12 +400,14 @@ function mockAPIPlugin(): Plugin {
         const url = req.url
         const uploadsMatch = url?.match(/^\/uploads\/(.+)$/)
         if (uploadsMatch) {
-          const entry = uploadStore.get(uploadsMatch[1])
-          if (entry) {
-            const base64 = entry.dataUrl.split(',')[1]
-            const buf = Buffer.from(base64, 'base64')
+          const fileName = uploadsMatch[1]
+          const filePath = path.join(UPLOADS_DIR, fileName)
+          if (fs.existsSync(filePath)) {
+            const buf = fs.readFileSync(filePath)
+            const ext = fileName.split('.').pop()?.toLowerCase() || 'png'
+            const mimeType = MIME_MAP[ext] || 'application/octet-stream'
             res.statusCode = 200
-            res.setHeader('Content-Type', entry.mimeType)
+            res.setHeader('Content-Type', mimeType)
             res.setHeader('Content-Length', buf.length)
             res.setHeader('Cache-Control', 'no-cache')
             res.end(buf)
@@ -387,17 +490,17 @@ function mockAPIPlugin(): Plugin {
             }
 
             const fileId = uid()
-            const dataUrl = 'data:' + fileMime + ';base64,' + fileData.toString('base64')
-            uploadStore.set(fileId, { dataUrl, mimeType: fileMime, size: fileData.length })
-
-            const fileUrl = '/uploads/' + fileId
+            const ext = fileMime.split('/')[1]?.split('+')[0] || 'png'
+            const filePath = path.join(UPLOADS_DIR, fileId + '.' + ext)
+            fs.writeFileSync(filePath, fileData!)
+            const fileUrl = '/uploads/' + fileId + '.' + ext
             const resp = j({ 
               url: fileUrl, 
               originalUrl: fileUrl, 
               size: fileData.length, 
               name: fileName,
               mimeType: fileMime,
-              format: fileMime.split('/')[1] || 'png',
+              format: ext,
               originalName: fileName
             })
             res.statusCode = resp.status
