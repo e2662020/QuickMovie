@@ -1,0 +1,32 @@
+{
+  "teams": [
+    {
+      "id": "team-mozugwu49x947m",
+      "name": "RATE",
+      "icon": "🎬",
+      "inviteCode": "MOZUGWU4",
+      "ownerId": "user-001"
+    }
+  ],
+  "teamMembers": {
+    "team-mozugwu49x947m": [
+      {
+        "userId": "user-001",
+        "name": "管理员",
+        "email": "admin@quickmovie.cn",
+        "role": "owner",
+        "joinedAt": "2026-05-10T14:04:39.868Z"
+      }
+    ]
+  },
+  "boards": [],
+  "boardFiles": [],
+  "elements": [],
+  "resources": [],
+  "sessions": [
+    {
+      "token": "mozugspy1tduu2mozugspyaqc0r9",
+      "userId": "user-001"
+    }
+  ]
+}

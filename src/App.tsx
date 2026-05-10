@@ -105,7 +105,10 @@ function MainContent() {
           const data = await res.json()
           if (data.user) {
             setUser(data.user)
-            setView('dashboard')
+            // Only go to dashboard if no redirect and not already on invite
+            if (currentView !== 'invite') {
+              setView('dashboard')
+            }
             const teamsRes = await fetch('/api/teams')
             if (teamsRes.ok) {
               const teamsData = await teamsRes.json()
@@ -120,7 +123,7 @@ function MainContent() {
       }
     }
     checkAuth()
-  }, [setUser, setView, setTeams])
+  }, [setUser, setView, setTeams, currentView])
 
   if (loading) {
     return (

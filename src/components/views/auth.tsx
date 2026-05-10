@@ -25,6 +25,8 @@ export function AuthView() {
     setToken,
     setTeams,
     setView,
+    redirectAfterLogin,
+    setRedirectAfterLogin,
   } = useAppStore()
 
   const isLogin = currentView === 'login'
@@ -129,7 +131,13 @@ export function AuthView() {
       // Load teams
       await loadTeams(data.token)
 
-      setView('dashboard')
+      // Redirect to saved view or dashboard
+      if (redirectAfterLogin) {
+        setView(redirectAfterLogin)
+        setRedirectAfterLogin(null)
+      } else {
+        setView('dashboard')
+      }
     } catch {
       setError('网络错误，请稍后重试')
     } finally {
@@ -166,7 +174,13 @@ export function AuthView() {
       // Load teams
       await loadTeams(data.token)
 
-      setView('dashboard')
+      // Redirect to saved view or dashboard
+      if (redirectAfterLogin) {
+        setView(redirectAfterLogin)
+        setRedirectAfterLogin(null)
+      } else {
+        setView('dashboard')
+      }
     } catch {
       setError('网络错误，请稍后重试')
     } finally {

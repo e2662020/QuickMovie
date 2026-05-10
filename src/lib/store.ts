@@ -80,6 +80,7 @@ interface AppState {
 
   currentView: AppView
   previousView: AppView | null
+  redirectAfterLogin: AppView | null
 
   currentTeam: Team | null
   teams: Team[]
@@ -102,6 +103,7 @@ interface AppState {
   setToken: (token: string | null) => void
   setView: (view: AppView) => void
   goBack: () => void
+  setRedirectAfterLogin: (view: AppView | null) => void
   setCurrentTeam: (team: Team | null) => void
   setTeams: (teams: Team[]) => void
   setCurrentBoard: (board: DirectorBoard | null) => void
@@ -124,6 +126,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
 
   currentView: 'landing',
   previousView: null,
+  redirectAfterLogin: null,
 
   currentTeam: null,
   teams: [],
@@ -154,6 +157,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
       set({ currentView: prev, previousView: null })
     }
   },
+  setRedirectAfterLogin: (view) => set({ redirectAfterLogin: view }),
   setCurrentTeam: (team) => set({ currentTeam: team }),
   setTeams: (teams) => set({ teams }),
   setCurrentBoard: (board) => set({ currentBoard: board, currentFile: null, boardFiles: [] }),
