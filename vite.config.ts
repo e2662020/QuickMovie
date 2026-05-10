@@ -333,9 +333,13 @@ function mockAPIPlugin(): Plugin {
         if (!f) return j({ error: '不存在' }, 404)
         return j({ file: f })
       }
+      if (!search.boardId) return j({ error: '缺少 boardId' }, 400)
       let files = db.boardFiles.filter(f => f.boardId === search.boardId)
-      if (search.parentId) files = files.filter(f => f.parentId === search.parentId)
-      else if (search.parentId === 'null') files = files.filter(f => f.parentId === null || f.parentId === undefined)
+      if (search.parentId) {
+        files = files.filter(f => f.parentId === search.parentId)
+      } else {
+        files = files.filter(f => !f.parentId)
+      }
       files.sort((a, b) => a.sortOrder - b.sortOrder)
       return j({ files })
     }
