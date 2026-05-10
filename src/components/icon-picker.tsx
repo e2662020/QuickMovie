@@ -284,7 +284,13 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80 p-0" align="start" side="bottom" sideOffset={8}>
-              <div className="flex flex-col">
+              <div
+                className="flex flex-col"
+                onDragEnter={handleDragEnter}
+                onDragLeave={handleDragLeave}
+                onDragOver={handleDragOver}
+                onDrop={handleDrop}
+              >
                 <div className="flex items-center gap-2 border-b p-3">
                   <div className="relative flex-1">
                     <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -360,23 +366,22 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
                 )}
 
                 <div className="border-t p-3">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="w-full gap-1.5"
-                    onClick={() => fileInputRef.current?.click()}
-                    type="button"
-                  >
-                    <ImagePlus className="h-3.5 w-3.5" />
-                    上传自定义图片
-                  </Button>
+                  <div className="relative">
+                    <button
+                      className="w-full h-8 px-3 flex items-center justify-center gap-1.5 text-xs bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-md transition-colors touch-manipulation select-none cursor-pointer"
+                      type="button"
+                    >
+                      <ImagePlus className="h-3.5 w-3.5" />
+                      上传自定义图片
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      onChange={handleFileChange}
+                    />
+                  </div>
                   <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
                     支持 JPG/PNG/GIF/WebP，最大 5MB
                   </p>
