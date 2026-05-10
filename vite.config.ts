@@ -280,6 +280,7 @@ function mockAPIPlugin(): Plugin {
         const m = members.find(x => x.userId === body.userId)
         if (m) m.role = body.role
       }
+      saveDB()
       return j({})
     }
     if (path === '/api/teams/join' && method === 'DELETE') {
@@ -288,6 +289,7 @@ function mockAPIPlugin(): Plugin {
         const idx = members.findIndex(m => m.userId === search.userId)
         if (idx >= 0) members.splice(idx, 1)
       }
+      saveDB()
       return j({})
     }
 
@@ -378,7 +380,11 @@ function mockAPIPlugin(): Plugin {
     if (path === '/api/boards/elements' && method === 'PATCH') {
       const el = db.elements.find(e => e.id === body.elementId)
       if (!el) return j({ error: '不存在' }, 404)
-      Object.assign(el, body)
+      if (body.name !== undefined) el.name = body.name
+      if (body.content !== undefined) el.content = body.content
+      if (body.color !== undefined) el.color = body.color
+      if (body.position !== undefined) el.position = body.position
+      if (body.fileId !== undefined) el.fileId = body.fileId
       el.updatedAt = new Date().toISOString()
       saveDB()
       return j({ element: el })

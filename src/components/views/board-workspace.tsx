@@ -697,6 +697,8 @@ export function BoardWorkspace() {
   const [uploading, setUploading] = useState(false)
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   const [childrenCache, setChildrenCache] = useState<Record<string, BoardFile[]>>({})
+  const childrenCacheRef = useRef(childrenCache)
+  childrenCacheRef.current = childrenCache
 
   // Dialog states
   const [renameOpen, setRenameOpen] = useState(false)
@@ -735,8 +737,9 @@ export function BoardWorkspace() {
   }, [currentBoard, setBoardFiles])
 
   // ── API: Load Children for a folder ──
-  const loadChildren = useCallback(async (folderId: string) => {
-    if (!currentBoard || childrenCache[folderId]) return
+  const loadChildren = useCallback(async (folderId: string, force = false) => {
+    if (!currentBoard) return
+    if (!force && childrenCacheRef.current[folderId]) return
     try {
       const res = await fetch(
         `/api/boards/files?boardId=${encodeURIComponent(currentBoard.id)}&parentId=${encodeURIComponent(folderId)}`
@@ -748,7 +751,7 @@ export function BoardWorkspace() {
     } catch {
       // Silently fail
     }
-  }, [currentBoard, childrenCache])
+  }, [currentBoard])
 
   // ── API: Load Resources ──
   const loadResources = useCallback(async () => {
@@ -804,28 +807,37 @@ export function BoardWorkspace() {
         }
         return next
       })
-      // Load children if not cached
-      if (!childrenCache[fileId]) {
-        loadChildren(fileId)
-      }
     },
-    [childrenCache, loadChildren]
+    []
   )
+
+  // Load children when a folder is expanded
+  useEffect(() => {
+    expandedFolders.forEach((folderId) => {
+      if (!childrenCache[folderId]) {
+        loadChildren(folderId)
+      }
+    })
+  }, [expandedFolders, childrenCache, loadChildren])
 
   // Select file
   const handleSelectFile = useCallback(
     (file: BoardFile) => {
       setCurrentFile(file)
-      // If folder, ensure children loaded
-      if (file.type === 'folder' && !childrenCache[file.id]) {
-        loadChildren(file.id)
+      // If folder, expand it
+      if (file.type === 'folder') {
+        setExpandedFolders((prev) => {
+          const next = new Set(prev)
+          next.add(file.id)
+          return next
+        })
       }
       // Close mobile sidebar
       if (isMobile) {
         setMobileSidebarOpen(false)
       }
     },
-    [setCurrentFile, childrenCache, loadChildren, isMobile]
+    [setCurrentFile, isMobile]
   )
 
   // Open create dialog
@@ -872,14 +884,9 @@ export function BoardWorkspace() {
       toast.success(`${FILE_TYPE_CONFIG[createType].label}已创建`)
       setCreateOpen(false)
       await loadFiles()
-      // If created inside a folder, refresh its children
+      // If created inside a folder, force refresh its children
       if (createParentId) {
-        setChildrenCache((prev) => {
-          const next = { ...prev }
-          delete next[createParentId]
-          return next
-        })
-        await loadChildren(createParentId)
+        await loadChildren(createParentId, true)
       }
       // Auto-select the new file
       if (data.file) {
@@ -958,11 +965,17 @@ export function BoardWorkspace() {
         setCurrentFile(null)
       }
       // If deleting a folder, clear its children cache
-      setChildrenCache((prev) => {
-        const next = { ...prev }
-        delete next[targetFile.id]
-        return next
-      })
+      if (targetFile.type === 'folder') {
+        setChildrenCache((prev) => {
+          const next = { ...prev }
+          delete next[targetFile.id]
+          return next
+        })
+      }
+      // If the deleted file had a parent, refresh parent's children
+      if (targetFile.parentId) {
+        await loadChildren(targetFile.parentId, true)
+      }
       setTargetFile(null)
       await loadFiles()
     } catch {

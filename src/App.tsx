@@ -95,7 +95,7 @@ function MainContent() {
     const path = window.location.pathname
     const view = pathToView[path] || 'landing'
     setView(view)
-  }, [setView])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     async function checkAuth() {
@@ -105,14 +105,15 @@ function MainContent() {
           const data = await res.json()
           if (data.user) {
             setUser(data.user)
-            // Only go to dashboard if no redirect, not already on invite, and not on board
-            if (currentView !== 'invite' && currentView !== 'board') {
-              setView('dashboard')
-            }
             const teamsRes = await fetch('/api/teams')
             if (teamsRes.ok) {
               const teamsData = await teamsRes.json()
               setTeams(teamsData.teams || [])
+            }
+            // If on landing/login/register, redirect to dashboard
+            const currentPath = window.location.pathname
+            if (currentPath === '/' || currentPath === '/login' || currentPath === '/register') {
+              setView('dashboard')
             }
           }
         }
@@ -123,7 +124,7 @@ function MainContent() {
       }
     }
     checkAuth()
-  }, [setUser, setView, setTeams, currentView])
+  }, [setUser, setTeams])
 
   if (loading) {
     return (
