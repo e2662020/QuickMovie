@@ -65,10 +65,10 @@ function mockAPIPlugin(): Plugin {
     return db.users.find(u => u.id === s.userId) || null
   }
 
-  function j(data: any, status = 200) {
+  function j(data: any, status = 200, extraHeaders: Record<string, string> = {}) {
     return new Response(JSON.stringify(data), {
       status,
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      headers: { 'Content-Type': 'application/json; charset=utf-8', ...extraHeaders },
     })
   }
 
@@ -88,7 +88,8 @@ function mockAPIPlugin(): Plugin {
       }
       const token = uid() + uid()
       db.sessions.push({ token, userId: user.id })
-      return j({ user, token })
+      const cookieHeader = `auth_token=${token}; Path=/; HttpOnly; SameSite=Lax`
+      return j({ user, token }, 200, { 'Set-Cookie': cookieHeader })
     }
     if (path === '/api/auth/register' && method === 'POST') {
       if (db.users.find(x => x.email === body.email)) return j({ error: '邮箱已注册' }, 400)
@@ -97,12 +98,13 @@ function mockAPIPlugin(): Plugin {
       const token = uid() + uid()
       db.sessions.push({ token, userId: u.id })
       const { password, ...safe } = u
-      return j({ user: safe, token })
+      const cookieHeader = `auth_token=${token}; Path=/; HttpOnly; SameSite=Lax`
+      return j({ user: safe, token }, 200, { 'Set-Cookie': cookieHeader })
     }
     if (path === '/api/auth/logout' && method === 'POST') {
       const m = (headers.cookie || '').match(/auth_token=([^;]+)/)
       if (m) db.sessions = db.sessions.filter(s => s.token !== m[1])
-      return j({})
+      return j({}, 200, { 'Set-Cookie': 'auth_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0' })
     }
     if (path === '/api/auth/me' && method === 'GET') {
       const s = auth(headers)
