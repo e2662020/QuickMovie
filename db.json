@@ -19,7 +19,16 @@
       }
     ]
   },
-  "boards": [],
+  "boards": [
+    {
+      "id": "board-mozv2l91erx88b",
+      "name": "111",
+      "teamId": "team-mozugwu49x947m",
+      "createdBy": "user-001",
+      "createdAt": "2026-05-10T14:21:31.285Z",
+      "updatedAt": "2026-05-10T14:21:31.285Z"
+    }
+  ],
   "boardFiles": [],
   "elements": [],
   "resources": [],

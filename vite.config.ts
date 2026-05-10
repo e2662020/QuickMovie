@@ -270,6 +270,7 @@ function mockAPIPlugin(): Plugin {
       if (members.find(m => m.userId === u.id)) return j({ error: '已是团队成员' }, 400)
       members.push({ userId: u.id, name: u.name, email: u.email, role: 'editor', joinedAt: new Date().toISOString() })
       db.teamMembers.set(tid, members)
+      saveDB()
       const team = db.teams.find(t => t.id === tid)
       return j({ team })
     }
@@ -298,6 +299,7 @@ function mockAPIPlugin(): Plugin {
       const u = auth(headers)
       const b: DBBoard = { id: 'board-' + uid(), name: body.name, teamId: body.teamId, createdBy: u?.id || 'unknown', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
       db.boards.push(b)
+      saveDB()
       return j({ board: b })
     }
     if (path === '/api/boards' && method === 'PATCH') {
@@ -305,12 +307,22 @@ function mockAPIPlugin(): Plugin {
       if (!b) return j({ error: '不存在' }, 404)
       if (body.name) b.name = body.name
       b.updatedAt = new Date().toISOString()
+      saveDB()
       return j({ board: b })
     }
     if (path === '/api/boards' && method === 'DELETE') {
-      db.boards = db.boards.filter(b => b.id !== search.boardId)
-      db.boardFiles = db.boardFiles.filter(f => f.boardId !== search.boardId)
-      db.elements = db.elements.filter(e => e.boardId !== search.boardId)
+      const boardId = search.boardId
+      // 删除相关资源文件
+      const resources = db.resources.filter(r => r.boardId === boardId)
+      for (const res of resources) {
+        if (isUploadUrl(res.url)) deleteUpload(res.url)
+        if (res.originalUrl && isUploadUrl(res.originalUrl)) deleteUpload(res.originalUrl)
+      }
+      db.boards = db.boards.filter(b => b.id !== boardId)
+      db.boardFiles = db.boardFiles.filter(f => f.boardId !== boardId)
+      db.elements = db.elements.filter(e => e.boardId !== boardId)
+      db.resources = db.resources.filter(r => r.boardId !== boardId)
+      saveDB()
       return j({})
     }
 
@@ -331,6 +343,7 @@ function mockAPIPlugin(): Plugin {
       const existing = db.boardFiles.filter(f => f.boardId === body.boardId)
       const f: DBFile = { id: 'file-' + uid(), boardId: body.boardId, parentId: body.parentId || null, name: body.name, type: body.type || 'note', content: body.content || '', sortOrder: existing.length, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
       db.boardFiles.push(f)
+      saveDB()
       return j({ file: f })
     }
     if (path === '/api/boards/files' && method === 'PATCH') {
@@ -339,10 +352,12 @@ function mockAPIPlugin(): Plugin {
       if (body.content !== undefined) f.content = body.content
       if (body.name) f.name = body.name
       f.updatedAt = new Date().toISOString()
+      saveDB()
       return j({ file: f })
     }
     if (path === '/api/boards/files' && method === 'DELETE') {
       db.boardFiles = db.boardFiles.filter(f => f.id !== search.fileId)
+      saveDB()
       return j({})
     }
 
@@ -353,6 +368,7 @@ function mockAPIPlugin(): Plugin {
     if (path === '/api/boards/elements' && method === 'POST') {
       const el: DBElement = { id: 'elem-' + uid(), boardId: body.boardId, fileId: body.fileId || null, type: body.type, name: body.name, content: body.content || '', color: body.color || '#6b7280', position: body.position || null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
       db.elements.push(el)
+      saveDB()
       return j({ element: el })
     }
     if (path === '/api/boards/elements' && method === 'PATCH') {
@@ -360,10 +376,12 @@ function mockAPIPlugin(): Plugin {
       if (!el) return j({ error: '不存在' }, 404)
       Object.assign(el, body)
       el.updatedAt = new Date().toISOString()
+      saveDB()
       return j({ element: el })
     }
     if (path === '/api/boards/elements' && method === 'DELETE') {
       db.elements = db.elements.filter(e => e.id !== search.elementId)
+      saveDB()
       return j({})
     }
 
@@ -374,10 +392,17 @@ function mockAPIPlugin(): Plugin {
     if (path === '/api/boards/resources' && method === 'POST') {
       const r: DBResource = { id: 'res-' + uid(), boardId: body.boardId, fileId: body.fileId || null, name: body.name, type: body.type, url: body.url, originalUrl: body.originalUrl || null, size: body.size || 0, mimeType: body.mimeType || 'image/png', createdAt: new Date().toISOString() }
       db.resources.push(r)
+      saveDB()
       return j({ resource: r })
     }
     if (path === '/api/boards/resources' && method === 'DELETE') {
+      const res = db.resources.find(r => r.id === search.resourceId)
+      if (res) {
+        if (isUploadUrl(res.url)) deleteUpload(res.url)
+        if (res.originalUrl && isUploadUrl(res.originalUrl)) deleteUpload(res.originalUrl)
+      }
       db.resources = db.resources.filter(r => r.id !== search.resourceId)
+      saveDB()
       return j({})
     }
 
