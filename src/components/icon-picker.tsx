@@ -376,16 +376,34 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
                 )}
 
                 <div className="border-t p-3">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="w-full gap-1.5"
-                    onClick={() => fileInputRef.current?.click()}
-                    type="button"
-                  >
-                    <ImagePlus className="h-3.5 w-3.5" />
-                    上传自定义图片
-                  </Button>
+                  <div className="relative">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="w-full gap-1.5 touch-manipulation select-none cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                      type="button"
+                    >
+                      <ImagePlus className="h-3.5 w-3.5" />
+                      上传自定义图片
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      onChange={handleFileChange}
+                      style={{
+                        opacity: 0,
+                        position: 'absolute',
+                        width: '100%',
+                        height: '100%',
+                        top: 0,
+                        left: 0,
+                        cursor: 'pointer'
+                      }}
+                    />
+                  </div>
                   <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
                     支持 JPG/PNG/GIF/WebP，最大 5MB · 拖拽图片即可上传
                   </p>
