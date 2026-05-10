@@ -29,12 +29,28 @@
       "updatedAt": "2026-05-10T14:21:31.285Z"
     }
   ],
-  "boardFiles": [],
+  "boardFiles": [
+    {
+      "id": "file-mozvbuetnjth6v",
+      "boardId": "board-mozv2l91erx88b",
+      "parentId": null,
+      "name": "未命名剧本",
+      "type": "script",
+      "content": "",
+      "sortOrder": 0,
+      "createdAt": "2026-05-10T14:28:43.061Z",
+      "updatedAt": "2026-05-10T14:28:43.061Z"
+    }
+  ],
   "elements": [],
   "resources": [],
   "sessions": [
     {
       "token": "mozugspy1tduu2mozugspyaqc0r9",
+      "userId": "user-001"
+    },
+    {
+      "token": "mozv5mkmq0rp0umozv5mkmkouja3",
       "userId": "user-001"
     }
   ]
