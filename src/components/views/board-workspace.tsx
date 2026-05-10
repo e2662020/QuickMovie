@@ -527,37 +527,55 @@ function ResourcePanel({
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const handleUploadClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      onUpload(e.target.files)
+      e.target.value = ''
+    }
+  }
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="flex items-center justify-between border-b px-4 py-3">
         <h3 className="text-sm font-semibold">资源库</h3>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 gap-1.5 text-xs"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-        >
-          {uploading ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Upload className="h-3.5 w-3.5" />
-          )}
-          上传
-        </Button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            if (e.target.files && e.target.files.length > 0) {
-              onUpload(e.target.files)
-              e.target.value = ''
-            }
-          }}
-        />
+        <div className="relative">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 gap-1.5 text-xs touch-manipulation select-none cursor-pointer"
+            onClick={handleUploadClick}
+            disabled={uploading}
+          >
+            {uploading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Upload className="h-3.5 w-3.5" />
+            )}
+            上传
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx"
+            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+            onChange={handleFileChange}
+            style={{ 
+              opacity: 0, 
+              position: 'absolute', 
+              width: '100%', 
+              height: '100%',
+              top: 0,
+              left: 0,
+              cursor: 'pointer'
+            }}
+          />
+        </div>
       </div>
 
       {/* Resource List */}
