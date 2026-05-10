@@ -391,7 +391,15 @@ function mockAPIPlugin(): Plugin {
             uploadStore.set(fileId, { dataUrl, mimeType: fileMime, size: fileData.length })
 
             const fileUrl = '/uploads/' + fileId
-            const resp = j({ url: fileUrl, originalUrl: fileUrl, size: fileData.length, name: fileName })
+            const resp = j({ 
+              url: fileUrl, 
+              originalUrl: fileUrl, 
+              size: fileData.length, 
+              name: fileName,
+              mimeType: fileMime,
+              format: fileMime.split('/')[1] || 'png',
+              originalName: fileName
+            })
             res.statusCode = resp.status
             res.setHeader('Content-Type', resp.headers.get('content-type') || 'application/json; charset=utf-8')
             res.end(await resp.text())
