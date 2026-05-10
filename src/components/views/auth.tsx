@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAppStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Film } from 'lucide-react'
 
 export function AuthView() {
   const {
@@ -28,6 +28,7 @@ export function AuthView() {
   } = useAppStore()
 
   const isLogin = currentView === 'login'
+  const [animationKey, setAnimationKey] = useState(0)
 
   // Form state
   const [loginEmail, setLoginEmail] = useState('')
@@ -40,6 +41,10 @@ export function AuthView() {
   // UI state
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setAnimationKey((prev) => prev + 1)
+  }, [currentView])
 
   // ---------- validation helpers ----------
   function validateEmail(email: string): boolean {
@@ -187,19 +192,22 @@ export function AuthView() {
     <div className="flex min-h-svh items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100 px-4 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       <div className="w-full max-w-md">
         {/* Back to landing */}
-        <div className="mb-6 flex justify-start">
+        <div className="mb-6 flex justify-start animate-fade-in-down">
           <button
             type="button"
             onClick={() => setView('landing')}
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-all duration-200 hover:text-foreground hover:gap-2"
           >
             ← 返回首页
           </button>
         </div>
 
-        <Card className="shadow-lg">
+        <Card className="shadow-xl animate-scale-in" style={{ animationDelay: '0.1s', animationFillMode: 'both' }}>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-white shadow-lg">
+              <Film className="h-8 w-8" />
+            </div>
+            <CardTitle className="text-2xl font-bold tracking-tight">
               {isLogin ? '登录' : '注册'}
             </CardTitle>
             <CardDescription>
@@ -212,7 +220,7 @@ export function AuthView() {
           <CardContent>
             {/* Invite code banner */}
             {inviteCode && (
-              <Alert className="mb-4 border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300">
+              <Alert className="mb-4 border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 animate-fade-in-up">
                 <AlertDescription>
                   🎉 你通过邀请链接访问，注册后将自动加入团队
                 </AlertDescription>
@@ -221,7 +229,7 @@ export function AuthView() {
 
             {/* Error */}
             {error && (
-              <Alert variant="destructive" className="mb-4">
+              <Alert variant="destructive" className="mb-4 animate-shake">
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
@@ -242,7 +250,12 @@ export function AuthView() {
 
               {/* ─── Login Form ─── */}
               <TabsContent value="login">
-                <form onSubmit={handleLogin} className="mt-4 space-y-4">
+                <form 
+                  key={animationKey} 
+                  onSubmit={handleLogin} 
+                  className="mt-4 space-y-4 animate-fade-in-up"
+                  style={{ animationDelay: '0.15s', animationFillMode: 'both' }}
+                >
                   <div className="space-y-2">
                     <Label htmlFor="login-email">邮箱</Label>
                     <Input
@@ -271,7 +284,7 @@ export function AuthView() {
 
                   <Button
                     type="submit"
-                    className="w-full"
+                    className="w-full transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                     disabled={loading}
                   >
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -281,11 +294,11 @@ export function AuthView() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full mt-2"
+                    className="w-full mt-2 transition-all duration-300 hover:bg-primary/5"
                     disabled={loading}
                     onClick={() => {
-                      setLoginEmail('demo@quickmovie.com')
-                      setLoginPassword('demo123456')
+                      setLoginEmail('admin@quickmovie.cn')
+                      setLoginPassword('123456')
                     }}
                   >
                     🔧 填入测试账号
@@ -295,7 +308,12 @@ export function AuthView() {
 
               {/* ─── Register Form ─── */}
               <TabsContent value="register">
-                <form onSubmit={handleRegister} className="mt-4 space-y-4">
+                <form 
+                  key={animationKey} 
+                  onSubmit={handleRegister} 
+                  className="mt-4 space-y-4 animate-fade-in-up"
+                  style={{ animationDelay: '0.15s', animationFillMode: 'both' }}
+                >
                   <div className="space-y-2">
                     <Label htmlFor="reg-name">姓名</Label>
                     <Input
@@ -350,7 +368,7 @@ export function AuthView() {
 
                   <Button
                     type="submit"
-                    className="w-full"
+                    className="w-full transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
                     disabled={loading}
                   >
                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -363,11 +381,11 @@ export function AuthView() {
 
           <CardFooter className="justify-center text-xs text-muted-foreground">
             {isLogin ? (
-              <span>
+              <span className="animate-fade-in">
                 还没有账号？{' '}
                 <button
                   type="button"
-                  className="text-primary underline-offset-4 hover:underline"
+                  className="text-primary underline-offset-4 hover:underline transition-all duration-200"
                   onClick={() => {
                     setError(null)
                     setView('register')
@@ -377,11 +395,11 @@ export function AuthView() {
                 </button>
               </span>
             ) : (
-              <span>
+              <span className="animate-fade-in">
                 已有账号？{' '}
                 <button
                   type="button"
-                  className="text-primary underline-offset-4 hover:underline"
+                  className="text-primary underline-offset-4 hover:underline transition-all duration-200"
                   onClick={() => {
                     setError(null)
                     setView('login')
@@ -395,7 +413,7 @@ export function AuthView() {
         </Card>
 
         {/* Copyright */}
-        <p className="mt-6 text-center text-xs text-muted-foreground">
+        <p className="mt-6 text-center text-xs text-muted-foreground animate-fade-in" style={{ animationDelay: '0.3s', animationFillMode: 'both' }}>
           © {new Date().getFullYear()} 快分镜 · AI 驱动的协作分镜工具
         </p>
       </div>

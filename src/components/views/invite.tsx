@@ -1,17 +1,30 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAppStore } from '@/lib/store'
+import { useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
-import { ArrowLeft, Users, Loader2, Check } from 'lucide-react'
+import { ArrowLeft, Users, Loader2 } from 'lucide-react'
 
 export function InviteView() {
-  const { inviteCode, setView, setTeams, setCurrentTeam, currentTeam } = useAppStore()
-  const [code, setCode] = useState(inviteCode || '')
+  const { setView, setTeams, setCurrentTeam, currentTeam, setInviteCode, inviteCode } = useAppStore()
+  const [searchParams] = useSearchParams()
+  const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Get invite code from URL or store
+  useEffect(() => {
+    const urlCode = searchParams.get('code')
+    if (urlCode) {
+      setCode(urlCode)
+      setInviteCode(urlCode)
+    } else if (inviteCode) {
+      setCode(inviteCode)
+    }
+  }, [searchParams, setInviteCode, inviteCode])
 
   const handleJoin = async () => {
     if (!code.trim()) {

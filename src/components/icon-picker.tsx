@@ -8,7 +8,9 @@ import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ImagePlus, Loader2, Smile, Search, Upload, X } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { ImagePlus, Loader2, Smile, Search, Upload, X, Edit3 } from 'lucide-react'
+import { ImageCropper } from './image-cropper'
 
 const EMOJI_CATEGORIES: { label: string; key: string; emojis: string[] }[] = [
   {
@@ -100,9 +102,10 @@ export function IconDisplay({ value, fallback, size = 'md' }: {
 }
 
 export function IconPicker({ value, onChange, size = 'md', className }: IconPickerProps) {
-  const [uploading, setUploading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [open, setOpen] = useState(false)
+  const [cropDialogOpen, setCropDialogOpen] = useState(false)
+  const [currentImage, setCurrentImage] = useState<File | string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dragCounter = useRef(0)
   const [isDragging, setIsDragging] = useState(false)
@@ -121,41 +124,68 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
     })
   }, [searchQuery])
 
-  const handleUpload = async (file: File) => {
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('图片大小不能超过 2MB')
+  // Handle file selection - open crop dialog
+  const handleFileSelect = (file: File) => {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('图片大小不能超过 5MB')
       return
     }
-
-    setUploading(true)
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const res = await fetch('/api/upload', { method: 'POST', body: formData })
-      const data = await res.json()
-
-      if (!res.ok) {
-        toast.error(data.error || '上传失败')
-        return
-      }
-
-      onChange(data.url)
-      setOpen(false)
-      toast.success('图片上传成功')
-    } catch {
-      toast.error('上传失败，请稍后重试')
-    } finally {
-      setUploading(false)
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''
-      }
-    }
+    setCurrentImage(file)
+    setCropDialogOpen(true)
+    setOpen(false)
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) handleUpload(file)
+    if (file) handleFileSelect(file)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  // Handle crop completion
+  const handleCropComplete = async (dataUrl: string) => {
+    // Convert data URL to blob and upload
+    try {
+      // Parse data URL directly to blob
+      const parts = dataUrl.split(',')
+      const mimeMatch = parts[0].match(/:(.*?);/)
+      const mime = mimeMatch ? mimeMatch[1] : 'image/png'
+      const base64 = parts[1]
+      const byteCharacters = atob(base64)
+      const byteNumbers = new Array(byteCharacters.length)
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i)
+      }
+      const byteArray = new Uint8Array(byteNumbers)
+      const blob = new Blob([byteArray], { type: mime })
+      
+      const file = new File([blob], 'cropped-icon.png', { type: mime })
+      
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData })
+      const uploadData = await uploadRes.json()
+
+      if (!uploadRes.ok) {
+        toast.error(uploadData.error || '上传失败')
+        return
+      }
+
+      onChange(uploadData.url)
+      setCropDialogOpen(false)
+      setCurrentImage(null)
+      toast.success('图片设置成功')
+    } catch (err) {
+      console.error('Error handling crop complete:', err)
+      toast.error('处理图片失败，请重试')
+    }
+  }
+
+  const handleCancelCrop = () => {
+    setCropDialogOpen(false)
+    setCurrentImage(null)
   }
 
   const handleDragEnter = (e: React.DragEvent) => {
@@ -188,11 +218,18 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
     dragCounter.current = 0
 
     const file = e.dataTransfer.files?.[0]
-    if (file) handleUpload(file)
+    if (file) handleFileSelect(file)
   }
 
   const handleClearImage = () => {
     onChange('🎬')
+  }
+
+  const handleEditImage = () => {
+    if (isImageUrl(value)) {
+      setCurrentImage(value)
+      setCropDialogOpen(true)
+    }
   }
 
   return (
@@ -201,7 +238,7 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
         {/* Preview */}
         <div
           className={cn(
-            'relative flex items-center justify-center rounded-xl border-2 bg-gradient-to-br from-muted/60 to-muted/30 shadow-sm transition-shadow',
+            'relative flex items-center justify-center rounded-xl border-2 bg-gradient-to-br from-muted/60 to-muted/30 shadow-sm transition-shadow group',
             previewSizeClasses[size],
             isImageUrl(value) && 'border-dashed'
           )}
@@ -213,10 +250,20 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
           {isImageUrl(value) ? (
             <>
               <img src={value} alt="" className="h-full w-full object-cover rounded-xl" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 rounded-xl transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                <button
+                  type="button"
+                  onClick={handleEditImage}
+                  className="p-1.5 bg-white/90 text-foreground rounded-full shadow-sm hover:bg-white transition-all hover:scale-105"
+                  title="编辑图片"
+                >
+                  <Edit3 className="h-3.5 w-3.5" />
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={handleClearImage}
-                className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-white shadow-sm hover:bg-destructive/90 transition-colors"
+                className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-white shadow-sm hover:bg-destructive/90 transition-colors opacity-0 group-hover:opacity-100"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -334,18 +381,13 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
                     variant="secondary"
                     className="w-full gap-1.5"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
                     type="button"
                   >
-                    {uploading ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <ImagePlus className="h-3.5 w-3.5" />
-                    )}
+                    <ImagePlus className="h-3.5 w-3.5" />
                     上传自定义图片
                   </Button>
                   <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
-                    支持 JPG/PNG/GIF/WebP，最大 2MB · 拖拽图片即可上传
+                    支持 JPG/PNG/GIF/WebP，最大 5MB · 拖拽图片即可上传
                   </p>
                 </div>
               </div>
@@ -361,6 +403,28 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
           />
         </div>
       </div>
+
+      {/* Crop Dialog */}
+      <Dialog open={cropDialogOpen} onOpenChange={setCropDialogOpen}>
+        <DialogContent className="sm:max-w-lg p-4">
+          <DialogHeader className="px-1">
+            <DialogTitle>裁剪图片</DialogTitle>
+            <DialogDescription>
+              裁剪为 1:1 比例，可添加背景色和内边距
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            {currentImage && (
+              <ImageCropper
+                image={currentImage}
+                aspectRatio={1}
+                onCrop={handleCropComplete}
+                onCancel={handleCancelCrop}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -310,7 +310,8 @@ export function DashboardView() {
       if (data.team) {
         setCurrentTeam(data.team)
       }
-    } catch {
+    } catch (err) {
+      console.error('Error creating team:', err)
       toast.error('网络错误，请稍后重试')
     } finally {
       setSubmitting(false)

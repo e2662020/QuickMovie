@@ -5,6 +5,7 @@ export interface User {
   email: string
   name: string
   avatar?: string
+  roles?: string[]
 }
 
 export interface Team {

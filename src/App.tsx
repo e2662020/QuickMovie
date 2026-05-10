@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { useAppStore } from '@/lib/store'
+import { useNavigate, useRoutes } from 'react-router-dom'
+import { useAppStore, type AppView } from '@/lib/store'
 import { LandingView } from '@/components/views/landing'
 import { AuthView } from '@/components/views/auth'
 import { DashboardView } from '@/components/views/dashboard'
@@ -46,9 +47,55 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
-export default function App() {
-  const { currentView, setUser, setView, setTeams } = useAppStore()
+// Map URL path to view
+const pathToView: Record<string, AppView> = {
+  '/': 'landing',
+  '/login': 'login',
+  '/register': 'register',
+  '/dashboard': 'dashboard',
+  '/board': 'board',
+  '/invite': 'invite',
+}
+
+// Map view to URL path
+const viewToPath: Record<AppView, string> = {
+  landing: '/',
+  login: '/login',
+  register: '/register',
+  dashboard: '/dashboard',
+  board: '/board',
+  invite: '/invite',
+}
+
+function MainContent() {
+  const { currentView, setUser, setView, setTeams, setInviteCode } = useAppStore()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
+
+  // Handle invite code from URL on initial load
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const code = params.get('code')
+    if (code && window.location.pathname === '/invite') {
+      setInviteCode(code)
+      setView('invite')
+    }
+  }, [setView, setInviteCode])
+
+  // Sync URL with currentView
+  useEffect(() => {
+    const expectedPath = viewToPath[currentView]
+    if (window.location.pathname !== expectedPath) {
+      navigate(expectedPath, { replace: true })
+    }
+  }, [currentView, navigate])
+
+  // Sync currentView with URL on initial load
+  useEffect(() => {
+    const path = window.location.pathname
+    const view = pathToView[path] || 'landing'
+    setView(view)
+  }, [setView])
 
   useEffect(() => {
     async function checkAuth() {
@@ -66,8 +113,8 @@ export default function App() {
             }
           }
         }
-      } catch (_e) {
-        // Not logged in, stay on landing
+      } catch {
+        // Stay on landing
       } finally {
         setLoading(false)
       }
@@ -106,10 +153,31 @@ export default function App() {
   }
 
   return (
+    <>
+      {renderView()}
+      <Toaster />
+    </>
+  )
+}
+
+function AppRoutes() {
+  const routes = useRoutes([
+    { path: '/', element: <MainContent /> },
+    { path: '/login', element: <MainContent /> },
+    { path: '/register', element: <MainContent /> },
+    { path: '/dashboard', element: <MainContent /> },
+    { path: '/board', element: <MainContent /> },
+    { path: '/invite', element: <MainContent /> },
+    { path: '*', element: <MainContent /> },
+  ])
+  return routes
+}
+
+export default function App() {
+  return (
     <ThemeProvider>
       <TooltipProvider delayDuration={300}>
-        {renderView()}
-        <Toaster />
+        <AppRoutes />
       </TooltipProvider>
     </ThemeProvider>
   )

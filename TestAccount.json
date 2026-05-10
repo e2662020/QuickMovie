@@ -1,0 +1,15 @@
+
+[
+    {
+        "username": "admin@quickmovie.cn",
+        "password": "123456",
+        "roles": ["admin"],
+        "status": true
+    },
+    {
+        "username": "demo@quickmovie.cn",
+        "password": "123456",
+        "roles": ["user"],
+        "status": true
+    }
+]
