@@ -1,7 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 
-// ============ Types ============
 export interface User {
   id: string
   email: string
@@ -15,7 +13,7 @@ export interface Team {
   icon?: string
   inviteCode: string
   ownerId: string
-  role: string // user's role in this team
+  role: string
   memberCount?: number
 }
 
@@ -67,7 +65,6 @@ export interface Resource {
   createdAt: string
 }
 
-// ============ View Types ============
 export type AppView =
   | 'landing'
   | 'login'
@@ -76,21 +73,16 @@ export type AppView =
   | 'board'
   | 'invite'
 
-// ============ App Store ============
 interface AppState {
-  // Auth
   user: User | null
   token: string | null
 
-  // Navigation
   currentView: AppView
   previousView: AppView | null
 
-  // Team
   currentTeam: Team | null
   teams: Team[]
 
-  // Board
   currentBoard: DirectorBoard | null
   currentFile: BoardFile | null
   boards: DirectorBoard[]
@@ -98,26 +90,13 @@ interface AppState {
   storyElements: StoryElement[]
   resources: Resource[]
 
-  // Invite
   inviteCode: string | null
 
-  // UI State
   sidebarOpen: boolean
   resourcePanelOpen: boolean
   pageBg: string
   darkMode: boolean
-  personalApiKey: string | null
-  personalEndpoint: string | null
-  personalModel: string | null
-  teamApiKey: string | null
-  teamEndpoint: string | null
-  teamModel: string | null
-  webSearchEndpoint: string | null
-  webSearchApiKey: string | null
-  teamWebSearchEndpoint: string | null
-  teamWebSearchApiKey: string | null
 
-  // Actions
   setUser: (user: User | null) => void
   setToken: (token: string | null) => void
   setView: (view: AppView) => void
@@ -135,124 +114,72 @@ interface AppState {
   setResourcePanelOpen: (open: boolean) => void
   setPageBg: (bg: string) => void
   setDarkMode: (dark: boolean) => void
-  setPersonalApiKey: (key: string | null) => void
-  setPersonalEndpoint: (endpoint: string | null) => void
-  setPersonalModel: (model: string | null) => void
-  setTeamApiKey: (key: string | null) => void
-  setTeamEndpoint: (endpoint: string | null) => void
-  setTeamModel: (model: string | null) => void
-  setWebSearchEndpoint: (endpoint: string | null) => void
-  setWebSearchApiKey: (key: string | null) => void
-  setTeamWebSearchEndpoint: (endpoint: string | null) => void
-  setTeamWebSearchApiKey: (key: string | null) => void
   reset: () => void
 }
 
-export const useAppStore = create<AppState>()(
-  persist(
-    (set, get) => ({
-      // Auth
-      user: null,
-      token: null,
+export const useAppStore = create<AppState>()((set, get) => ({
+  user: null,
+  token: null,
 
-      // Navigation
-      currentView: 'landing',
-      previousView: null,
+  currentView: 'landing',
+  previousView: null,
 
-      // Team
-      currentTeam: null,
-      teams: [],
+  currentTeam: null,
+  teams: [],
 
-      // Board
-      currentBoard: null,
-      currentFile: null,
-      boards: [],
-      boardFiles: [],
-      storyElements: [],
-      resources: [],
+  currentBoard: null,
+  currentFile: null,
+  boards: [],
+  boardFiles: [],
+  storyElements: [],
+  resources: [],
 
-      // Invite
-      inviteCode: null,
+  inviteCode: null,
 
-      // UI
-      sidebarOpen: true,
-      resourcePanelOpen: false,
-      pageBg: typeof window !== 'undefined' ? localStorage.getItem('script-editor-bg') || 'white' : 'white',
-      darkMode: false,
-      personalApiKey: null,
-      personalEndpoint: null,
-      personalModel: null,
-      teamApiKey: null,
-      teamEndpoint: null,
-      teamModel: null,
-      webSearchEndpoint: null,
-      webSearchApiKey: null,
-      teamWebSearchEndpoint: null,
-      teamWebSearchApiKey: null,
+  sidebarOpen: true,
+  resourcePanelOpen: false,
+  pageBg: typeof window !== 'undefined' ? localStorage.getItem('script-editor-bg') || 'white' : 'white',
+  darkMode: false,
 
-      // Actions
-      setUser: (user) => set({ user }),
-      setToken: (token) => set({ token }),
-      setView: (view) => {
-        const prev = get().currentView
-        set({ currentView: view, previousView: prev })
-      },
-      goBack: () => {
-        const prev = get().previousView
-        if (prev) {
-          set({ currentView: prev, previousView: null })
-        }
-      },
-      setCurrentTeam: (team) => set({ currentTeam: team }),
-      setTeams: (teams) => set({ teams }),
-      setCurrentBoard: (board) => set({ currentBoard: board, currentFile: null, boardFiles: [] }),
-      setCurrentFile: (file) => set({ currentFile: file }),
-      setBoards: (boards) => set({ boards }),
-      setBoardFiles: (files) => set({ boardFiles: files }),
-      setStoryElements: (elements) => set({ storyElements: elements }),
-      setResources: (resources) => set({ resources }),
-      setInviteCode: (code) => set({ inviteCode: code }),
-      setSidebarOpen: (open) => set({ sidebarOpen: open }),
-      setResourcePanelOpen: (open) => set({ resourcePanelOpen: open }),
-      setPageBg: (bg) => {
-        try { localStorage.setItem('script-editor-bg', bg) } catch {}
-        set({ pageBg: bg })
-      },
-      setDarkMode: (dark) => set({ darkMode: dark }),
-      setPersonalApiKey: (key) => set({ personalApiKey: key }),
-      setPersonalEndpoint: (endpoint) => set({ personalEndpoint: endpoint }),
-      setPersonalModel: (model) => set({ personalModel: model }),
-      setTeamApiKey: (key) => set({ teamApiKey: key }),
-      setTeamEndpoint: (endpoint) => set({ teamEndpoint: endpoint }),
-      setTeamModel: (model) => set({ teamModel: model }),
-      setWebSearchEndpoint: (endpoint) => set({ webSearchEndpoint: endpoint }),
-      setWebSearchApiKey: (key) => set({ webSearchApiKey: key }),
-      setTeamWebSearchEndpoint: (endpoint) => set({ teamWebSearchEndpoint: endpoint }),
-      setTeamWebSearchApiKey: (key) => set({ teamWebSearchApiKey: key }),
-      reset: () => set({
-        user: null,
-        token: null,
-        currentView: 'landing',
-        currentTeam: null,
-        teams: [],
-        currentBoard: null,
-        currentFile: null,
-        boards: [],
-        boardFiles: [],
-        storyElements: [],
-        resources: [],
-      }),
-    }),
-    {
-      name: 'quick-storyboard-storage',
-      partialize: (state) => ({
-        token: state.token,
-        personalApiKey: state.personalApiKey,
-        personalEndpoint: state.personalEndpoint,
-        personalModel: state.personalModel,
-        webSearchEndpoint: state.webSearchEndpoint,
-        webSearchApiKey: state.webSearchApiKey,
-      }),
+  setUser: (user) => set({ user }),
+  setToken: (token) => set({ token }),
+  setView: (view) => {
+    const prev = get().currentView
+    set({ currentView: view, previousView: prev })
+  },
+  goBack: () => {
+    const prev = get().previousView
+    if (prev) {
+      set({ currentView: prev, previousView: null })
     }
-  )
-)
+  },
+  setCurrentTeam: (team) => set({ currentTeam: team }),
+  setTeams: (teams) => set({ teams }),
+  setCurrentBoard: (board) => set({ currentBoard: board, currentFile: null, boardFiles: [] }),
+  setCurrentFile: (file) => set({ currentFile: file }),
+  setBoards: (boards) => set({ boards }),
+  setBoardFiles: (files) => set({ boardFiles: files }),
+  setStoryElements: (elements) => set({ storyElements: elements }),
+  setResources: (resources) => set({ resources }),
+  setInviteCode: (code) => set({ inviteCode: code }),
+  setSidebarOpen: (open) => set({ sidebarOpen: open }),
+  setResourcePanelOpen: (open) => set({ resourcePanelOpen: open }),
+  setPageBg: (bg) => {
+    try { localStorage.setItem('script-editor-bg', bg) } catch { /* ignore */ }
+    set({ pageBg: bg })
+  },
+  setDarkMode: (dark) => set({ darkMode: dark }),
+  reset: () => set({
+    user: null,
+    token: null,
+    currentView: 'landing',
+    currentTeam: null,
+    teams: [],
+    currentBoard: null,
+    currentFile: null,
+    boards: [],
+    boardFiles: [],
+    storyElements: [],
+    resources: [],
+  }),
+}))

@@ -46,7 +46,6 @@ import {
   Hash,
   Clapperboard,
 } from 'lucide-react'
-import { AIPanel } from './ai-panel'
 
 export type BlockType =
   | 'scene_heading'
@@ -1235,14 +1234,6 @@ export function ScriptEditor() {
 
         <div className="flex items-center gap-1">
           <ShortcutsDialog />
-
-          <AIPanel
-            onEnhance={(enhanced) => {
-              if (enhanced) {
-                toast.success('剧本已更新')
-              }
-            }}
-          />
 
           <TooltipProvider delayDuration={300}>
             <Tooltip>

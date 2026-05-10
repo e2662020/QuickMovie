@@ -65,6 +65,7 @@ interface IconPickerProps {
   onChange: (value: string) => void
   size?: 'sm' | 'md' | 'lg'
   className?: string
+  emojis?: string[]
 }
 
 function isImageUrl(value: string): boolean {

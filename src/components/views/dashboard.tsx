@@ -72,11 +72,8 @@ import {
   ClipboardList,
   Sun,
   Moon,
-  Cog,
-  Key,
 } from 'lucide-react'
 import { IconPicker, IconDisplay } from '@/components/icon-picker'
-import { SettingsDialog } from '@/components/settings-dialog'
 
 // ─── Constants ───────────────────────────────────────────────────
 const ROLE_LABELS: Record<string, string> = {
@@ -148,7 +145,6 @@ export function DashboardView() {
   const [deleteBoardOpen, setDeleteBoardOpen] = useState(false)
   const [manageMembersOpen, setManageMembersOpen] = useState(false)
   const [inviteLinkOpen, setInviteLinkOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
 
   // Form values
   const [newTeamName, setNewTeamName] = useState('')
@@ -753,23 +749,6 @@ export function DashboardView() {
               <TooltipContent>
                 {darkMode || pageBg === 'black' ? '切换浅色模式' : '切换深色模式'}
               </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          {/* Settings button */}
-          <TooltipProvider delayDuration={300}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={() => setSettingsOpen(true)}
-                >
-                  <Cog className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>设置</TooltipContent>
             </Tooltip>
           </TooltipProvider>
 
@@ -1421,8 +1400,6 @@ export function DashboardView() {
         </DialogContent>
       </Dialog>
 
-      {/* Settings Dialog */}
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   )
 }

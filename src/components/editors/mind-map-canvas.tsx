@@ -35,6 +35,7 @@ interface MindMapNode {
   color: string
   type: 'character' | 'scene' | 'event' | 'default'
   icon?: string
+  elementId?: string
 }
 
 interface MindMapConnection {

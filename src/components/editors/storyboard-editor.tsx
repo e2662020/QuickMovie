@@ -49,7 +49,7 @@ interface MindMapNode {
   title: string
   color: string
   type: 'character' | 'scene' | 'event' | 'default'
-  elementId: string
+  elementId?: string
 }
 
 interface MindMapConnection {
@@ -341,7 +341,7 @@ function StoryMindMap({ boardId, token }: { boardId: string; token: string | nul
     <MindMapCanvas
       nodes={nodes}
       connections={connections}
-      onNodesChange={handleNodesChange}
+      onNodesChange={(n) => { void handleNodesChange(n) }}
       onConnectionsChange={handleConnectionsChange}
     />
   )

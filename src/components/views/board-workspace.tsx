@@ -10,7 +10,7 @@ import { StoryboardEditor } from '@/components/editors/storyboard-editor'
 import { ScriptEditor } from '@/components/editors/script-editor'
 import { ShotEditor } from '@/components/editors/shot-editor'
 import { NoteEditor } from '@/components/editors/note-editor'
-import { SettingsDialog } from '@/components/settings-dialog'
+
 
 import { Button } from '@/components/ui/button'
 import {
@@ -85,7 +85,6 @@ import {
   Check,
   Sun,
   Moon,
-  Cog,
 } from 'lucide-react'
 
 // ═══════════════════════════════════════════════════════════════════
@@ -686,7 +685,6 @@ export function BoardWorkspace() {
 
   // Sheet state for mobile sidebar
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
 
   // ── Computed ──
   const rootFiles = boardFiles
@@ -1296,23 +1294,6 @@ export function BoardWorkspace() {
             </Tooltip>
           </TooltipProvider>
 
-          {/* Settings button */}
-          <TooltipProvider delayDuration={300}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setSettingsOpen(true)}
-                >
-                  <Cog className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>设置</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
           {/* Resource panel toggle */}
           <TooltipProvider delayDuration={300}>
             <Tooltip>
@@ -1523,8 +1504,7 @@ export function BoardWorkspace() {
         </DialogContent>
       </Dialog>
 
-      {/* Settings Dialog */}
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+
     </div>
   )
 }
