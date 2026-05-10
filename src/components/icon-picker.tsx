@@ -376,17 +376,14 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
                 )}
 
                 <div className="border-t p-3">
-                  <div className="relative">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="w-full gap-1.5 touch-manipulation select-none cursor-pointer"
-                      onClick={() => fileInputRef.current?.click()}
+                  <div className="relative overflow-hidden rounded-md">
+                    <button
+                      className="w-full h-8 px-3 flex items-center justify-center gap-1.5 text-xs bg-secondary hover:bg-secondary/90 text-secondary-foreground rounded-md transition-colors touch-manipulation select-none cursor-pointer"
                       type="button"
                     >
                       <ImagePlus className="h-3.5 w-3.5" />
                       上传自定义图片
-                    </Button>
+                    </button>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -400,7 +397,8 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
                         height: '100%',
                         top: 0,
                         left: 0,
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        zIndex: 10
                       }}
                     />
                   </div>
@@ -411,14 +409,6 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
               </div>
             </PopoverContent>
           </Popover>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
-            className="hidden"
-            onChange={handleFileChange}
-          />
         </div>
       </div>
 
