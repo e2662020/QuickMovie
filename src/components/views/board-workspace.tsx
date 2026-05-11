@@ -1076,21 +1076,28 @@ export function BoardWorkspace() {
 
   // ── Loading State ──
   if (!currentBoard) {
+    const isLoadingDark = pageBg === 'black' || darkMode
+    const loadingBg = isLoadingDark ? '#171717' : getPageBgColor(pageBg)
     return (
-      <div className="flex h-screen items-center justify-center" style={{ backgroundColor: getPageBgColor(pageBg) }}>
+      <div className="flex h-screen items-center justify-center" style={{ backgroundColor: loadingBg }}>
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className={cn('h-6 w-6 animate-spin', pageBg === 'black' ? 'text-gray-400' : 'text-muted-foreground')} />
-          <p className="text-sm text-muted-foreground">正在返回仪表盘…</p>
+          <Loader2 className={cn('h-6 w-6 animate-spin', isLoadingDark ? 'text-gray-400' : 'text-muted-foreground')} />
+          <p className={cn('text-sm', isLoadingDark ? 'text-gray-400' : 'text-muted-foreground')}>正在返回仪表盘…</p>
         </div>
       </div>
     )
   }
 
   if (loading) {
+    const isLoadingDark = pageBg === 'black' || darkMode
+    const loadingBg = isLoadingDark ? '#171717' : getPageBgColor(pageBg)
     return (
-      <div className="flex h-screen flex-col" style={{ backgroundColor: getPageBgColor(pageBg) }}>
+      <div className="flex h-screen flex-col" style={{ backgroundColor: loadingBg }}>
         {/* Header skeleton */}
-        <header className="flex items-center gap-3 border-b px-4 py-3 md:px-6">
+        <header className={cn(
+          'flex items-center gap-3 border-b px-4 py-3 md:px-6',
+          isLoadingDark ? 'border-gray-800' : 'border-gray-100'
+        )} style={{ backgroundColor: loadingBg }}>
           <Skeleton className="h-8 w-8 rounded-md" />
           <Skeleton className="h-6 w-48" />
           <div className="ml-auto flex gap-2">
@@ -1100,13 +1107,16 @@ export function BoardWorkspace() {
         </header>
         {/* Body skeleton */}
         <div className="flex flex-1 overflow-hidden">
-          <div className="w-[240px] shrink-0 border-r p-3 space-y-2">
+          <div className={cn(
+            'w-[240px] shrink-0 border-r p-3 space-y-2',
+            isLoadingDark ? 'border-gray-800' : 'border-gray-100'
+          )} style={{ backgroundColor: loadingBg }}>
             {[1, 2, 3, 4, 5].map((i) => (
               <Skeleton key={i} className="h-8 w-full rounded-md" />
             ))}
           </div>
           <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Loader2 className={cn('h-8 w-8 animate-spin', isLoadingDark ? 'text-gray-400' : 'text-muted-foreground')} />
           </div>
         </div>
       </div>
@@ -1117,8 +1127,8 @@ export function BoardWorkspace() {
   // Render
   // ═══════════════════════════════════════════════════════════════
 
-  const isDarkBg = pageBg === 'black'
-  const bgColor = getPageBgColor(pageBg)
+  const isDarkBg = pageBg === 'black' || darkMode
+  const bgColor = isDarkBg ? '#171717' : getPageBgColor(pageBg)
 
   // ═══════════════════════════════════════════════════════════════
   // Sidebar Content (shared between desktop & mobile)

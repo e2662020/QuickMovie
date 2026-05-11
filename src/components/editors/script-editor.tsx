@@ -915,7 +915,7 @@ function ShortcutsDialog({ isDarkBg }: { isDarkBg: boolean }) {
 }
 
 export function ScriptEditor() {
-  const { currentFile, setCurrentFile, token, storyElements, pageBg } = useAppStore()
+  const { currentFile, setCurrentFile, token, storyElements, pageBg, darkMode } = useAppStore()
 
   const [data, setData] = useState<ScriptData>(() => ({
     ...DEFAULT_SCRIPT,
@@ -940,8 +940,9 @@ export function ScriptEditor() {
     position: { top: number; left: number }
   } | null>(null)
 
-  const isDarkBg = pageBg === 'black'
+  const isDarkBg = pageBg === 'black' || darkMode
   const bgConfig = PAGE_BG_OPTIONS.find(o => o.value === pageBg) || PAGE_BG_OPTIONS[0]
+  const bgColor = isDarkBg ? '#1a1a1a' : bgConfig.color
 
   const characterOptions = useMemo<AutocompleteOption[]>(() => {
     return storyElements
@@ -1227,7 +1228,7 @@ export function ScriptEditor() {
 
   if (!currentFile) {
     return (
-      <div className={cn('flex h-full items-center justify-center')} style={{ backgroundColor: bgConfig.color }}>
+      <div className={cn('flex h-full items-center justify-center')} style={{ backgroundColor: bgColor }}>
         <div className="text-center">
           <Clapperboard className={cn('h-10 w-10 mx-auto mb-3', isDarkBg ? 'text-gray-600' : 'text-gray-300')} />
           <p className={cn('text-sm', isDarkBg ? 'text-gray-500' : 'text-gray-400')}>
@@ -1239,7 +1240,7 @@ export function ScriptEditor() {
   }
 
   return (
-    <div className="flex h-full flex-col" style={{ backgroundColor: bgConfig.color }}>
+    <div className="flex h-full flex-col" style={{ backgroundColor: bgColor }}>
       <div className={cn(
         'flex items-center justify-between px-4 py-2 border-b',
         isDarkBg ? 'border-gray-800' : 'border-gray-100'
