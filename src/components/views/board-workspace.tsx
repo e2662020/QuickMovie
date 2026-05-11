@@ -106,11 +106,11 @@ const FILE_TYPE_CONFIG: Record<
 }
 
 const PAGE_BG_OPTIONS: { value: string; label: string; color: string; darkColor: string; dark: boolean }[] = [
-  { value: 'white', label: '白色', color: '#ffffff', darkColor: '#171717', dark: false },
+  { value: 'white', label: '白色', color: '#ffffff', darkColor: '#141414', dark: false },
   { value: 'black', label: '黑色', color: '#1a1a1a', darkColor: '#1a1a1a', dark: true },
-  { value: 'blue', label: '淡蓝', color: '#eef6fc', darkColor: '#1e293b', dark: false },
-  { value: 'green', label: '淡绿', color: '#edf7ed', darkColor: '#14532d', dark: false },
-  { value: 'yellow', label: '淡黄', color: '#fef9e7', darkColor: '#422006', dark: false },
+  { value: 'blue', label: '淡蓝', color: '#eef6fc', darkColor: '#1a1a1a', dark: false },
+  { value: 'green', label: '淡绿', color: '#edf7ed', darkColor: '#141414', dark: false },
+  { value: 'yellow', label: '淡黄', color: '#fef9e7', darkColor: '#141414', dark: false },
 ]
 
 const getPageBgColor = (bg: string): string => {
