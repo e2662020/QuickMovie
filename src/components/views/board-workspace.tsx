@@ -1402,7 +1402,7 @@ export function BoardWorkspace() {
         )}
 
         {/* Main Editor Area */}
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-hidden" style={{ backgroundColor: bgColor }}>
           <EditorArea file={currentFile} boardId={currentBoard.id} />
         </main>
 
