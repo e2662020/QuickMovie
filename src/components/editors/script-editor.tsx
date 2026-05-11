@@ -236,12 +236,14 @@ function AutocompletePopup({
   onSelect,
   onClose,
   position,
+  isDarkBg,
 }: {
   options: AutocompleteOption[]
   query: string
   onSelect: (option: AutocompleteOption) => void
   onClose: () => void
   position: { top: number; left: number }
+  isDarkBg: boolean
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [selectedIndex, setSelectedIndex] = useState(0)
@@ -290,7 +292,12 @@ function AutocompletePopup({
   return (
     <div
       ref={containerRef}
-      className="fixed z-[100] w-72 rounded-lg border border-gray-200 bg-white p-1 shadow-lg"
+      className={cn(
+        'fixed z-[100] w-72 rounded-lg border p-1 shadow-lg',
+        isDarkBg
+          ? 'bg-gray-900 border-gray-700'
+          : 'bg-white border-gray-200'
+      )}
       style={{ top: position.top + 28, left: position.left }}
     >
       <div className="max-h-[220px] overflow-y-auto scrollbar-thin">
@@ -301,16 +308,20 @@ function AutocompletePopup({
             className={cn(
               'flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors text-left',
               idx === selectedIndex
-                ? 'bg-gray-100 text-gray-900'
-                : 'text-gray-600 hover:bg-gray-50'
+                ? isDarkBg
+                  ? 'bg-gray-800 text-gray-100'
+                  : 'bg-gray-100 text-gray-900'
+                : isDarkBg
+                  ? 'text-gray-300 hover:bg-gray-800'
+                  : 'text-gray-600 hover:bg-gray-50'
             )}
             onClick={() => onSelect(option)}
             onMouseEnter={() => setSelectedIndex(idx)}
           >
             {option.type === 'character' ? (
-              <Users className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+              <Users className={cn('h-3.5 w-3.5 shrink-0', isDarkBg ? 'text-gray-500' : 'text-gray-400')} />
             ) : (
-              <MapPin className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+              <MapPin className={cn('h-3.5 w-3.5 shrink-0', isDarkBg ? 'text-gray-500' : 'text-gray-400')} />
             )}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
@@ -321,12 +332,15 @@ function AutocompletePopup({
                 <span className="truncate font-medium">{option.name}</span>
               </div>
               {option.description && (
-                <span className="truncate text-xs text-gray-400">
+                <span className={cn('truncate text-xs', isDarkBg ? 'text-gray-500' : 'text-gray-400')}>
                   {option.description}
                 </span>
               )}
             </div>
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 font-medium">
+            <span className={cn(
+              'text-[10px] px-1.5 py-0.5 rounded font-medium',
+              isDarkBg ? 'bg-gray-800 text-gray-400' : 'bg-gray-100 text-gray-500'
+            )}>
               {option.type === 'character' ? '角色' : '场景'}
             </span>
           </button>
@@ -379,20 +393,28 @@ function BlockCommandPalette({
   open,
   onOpenChange,
   onSelect,
+  isDarkBg,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSelect: (type: BlockType) => void
+  isDarkBg: boolean
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+      <DialogContent className={cn(
+        'sm:max-w-md p-0 overflow-hidden',
+        isDarkBg ? 'bg-gray-900 border-gray-700' : 'bg-white'
+      )}>
         <DialogTitle className="sr-only">选择块类型</DialogTitle>
         <DialogDescription className="sr-only">选择要插入的剧本块类型</DialogDescription>
-        <Command className="[&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-3 [&_[cmdk-item]]:py-3 [&_[cmdk-item]]:gap-3 [&_[cmdk-item]_svg]:h-4 [&_[cmdk-item]_svg]:w-4">
+        <Command className={cn(
+          '[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-3 [&_[cmdk-item]]:py-3 [&_[cmdk-item]]:gap-3 [&_[cmdk-item]_svg]:h-4 [&_[cmdk-item]_svg]:w-4',
+          isDarkBg ? '[&_[cmdk-group-heading]]:text-gray-400' : '[&_[cmdk-group-heading]]:text-muted-foreground'
+        )}>
           <CommandInput placeholder="选择块类型..." />
           <CommandList>
-            <CommandEmpty>未找到块类型</CommandEmpty>
+            <CommandEmpty className={isDarkBg ? 'text-gray-400' : ''}>未找到块类型</CommandEmpty>
             <CommandGroup heading="剧本块类型">
               {BLOCK_TYPES.map((bt) => (
                 <CommandItem
@@ -402,16 +424,28 @@ function BlockCommandPalette({
                     onSelect(bt.value)
                     onOpenChange(false)
                   }}
+                  className={cn(
+                    isDarkBg ? 'text-gray-300' : 'text-gray-700'
+                  )}
                 >
-                  <span className="text-gray-500">{bt.icon}</span>
+                  <span className={isDarkBg ? 'text-gray-500' : 'text-gray-500'}>{bt.icon}</span>
                   <div className="flex-1">
-                    <div className="text-sm font-medium">{bt.label}</div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className={cn(
+                      'text-sm font-medium',
+                      isDarkBg ? 'text-gray-200' : 'text-gray-900'
+                    )}>{bt.label}</div>
+                    <div className={cn(
+                      'text-xs',
+                      isDarkBg ? 'text-gray-500' : 'text-muted-foreground'
+                    )}>
                       {bt.description}
                     </div>
                   </div>
                   {bt.shortcut && (
-                    <span className="text-[10px] text-muted-foreground/50 ml-2 font-mono">
+                    <span className={cn(
+                      'text-[10px] ml-2 font-mono',
+                      isDarkBg ? 'text-gray-600' : 'text-muted-foreground/50'
+                    )}>
                       {bt.shortcut}
                     </span>
                   )}
@@ -754,29 +788,47 @@ function ScriptBlockEditor({
   )
 }
 
-function ShortcutsDialog() {
+function ShortcutsDialog({ isDarkBg }: { isDarkBg: boolean }) {
   const [open, setOpen] = useState(false)
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-xs text-gray-400 hover:text-gray-600">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className={cn(
+            'h-7 gap-1.5 text-xs',
+            isDarkBg ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'
+          )}
+        >
           <Keyboard className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">快捷键</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent 
+        className={cn(
+          'sm:max-w-md',
+          isDarkBg ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'
+        )}
+      >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Keyboard className="h-5 w-5" />
+          <DialogTitle className={cn(
+            'flex items-center gap-2',
+            isDarkBg ? 'text-gray-100' : 'text-gray-900'
+          )}>
+            <Keyboard className={cn('h-5 w-5', isDarkBg ? 'text-gray-400' : 'text-gray-600')} />
             键盘快捷键
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className={isDarkBg ? 'text-gray-400' : 'text-gray-500'}>
             使用快捷键提升你的编剧效率
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 pt-2">
           <div className="space-y-2">
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <h4 className={cn(
+              'text-xs font-semibold uppercase tracking-wider',
+              isDarkBg ? 'text-gray-500' : 'text-muted-foreground'
+            )}>
               通用
             </h4>
             {[
@@ -791,16 +843,22 @@ function ShortcutsDialog() {
                 key={s.keys}
                 className="flex items-center justify-between py-1"
               >
-                <span className="text-sm">{s.desc}</span>
-                <kbd className="rounded border bg-muted px-2 py-0.5 text-[11px] font-mono text-muted-foreground">
+                <span className={cn('text-sm', isDarkBg ? 'text-gray-300' : 'text-gray-700')}>{s.desc}</span>
+                <kbd className={cn(
+                  'rounded border px-2 py-0.5 text-[11px] font-mono',
+                  isDarkBg ? 'bg-gray-800 border-gray-700 text-gray-400' : 'bg-muted text-muted-foreground'
+                )}>
                   {s.keys}
                 </kbd>
               </div>
             ))}
           </div>
-          <Separator />
+          <Separator className={isDarkBg ? 'bg-gray-800' : ''} />
           <div className="space-y-2">
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <h4 className={cn(
+              'text-xs font-semibold uppercase tracking-wider',
+              isDarkBg ? 'text-gray-500' : 'text-muted-foreground'
+            )}>
               插入块类型
             </h4>
             {[
@@ -813,16 +871,22 @@ function ShortcutsDialog() {
                 key={s.keys}
                 className="flex items-center justify-between py-1"
               >
-                <span className="text-sm">{s.desc}</span>
-                <kbd className="rounded border bg-muted px-2 py-0.5 text-[11px] font-mono text-muted-foreground">
+                <span className={cn('text-sm', isDarkBg ? 'text-gray-300' : 'text-gray-700')}>{s.desc}</span>
+                <kbd className={cn(
+                  'rounded border px-2 py-0.5 text-[11px] font-mono',
+                  isDarkBg ? 'bg-gray-800 border-gray-700 text-gray-400' : 'bg-muted text-muted-foreground'
+                )}>
                   {s.keys}
                 </kbd>
               </div>
             ))}
           </div>
-          <Separator />
+          <Separator className={isDarkBg ? 'bg-gray-800' : ''} />
           <div className="space-y-2">
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <h4 className={cn(
+              'text-xs font-semibold uppercase tracking-wider',
+              isDarkBg ? 'text-gray-500' : 'text-muted-foreground'
+            )}>
               格式化
             </h4>
             {[
@@ -834,8 +898,11 @@ function ShortcutsDialog() {
                 key={s.keys}
                 className="flex items-center justify-between py-1"
               >
-                <span className="text-sm">{s.desc}</span>
-                <kbd className="rounded border bg-muted px-2 py-0.5 text-[11px] font-mono text-muted-foreground">
+                <span className={cn('text-sm', isDarkBg ? 'text-gray-300' : 'text-gray-700')}>{s.desc}</span>
+                <kbd className={cn(
+                  'rounded border px-2 py-0.5 text-[11px] font-mono',
+                  isDarkBg ? 'bg-gray-800 border-gray-700 text-gray-400' : 'bg-muted text-muted-foreground'
+                )}>
                   {s.keys}
                 </kbd>
               </div>
@@ -1233,7 +1300,7 @@ export function ScriptEditor() {
         </div>
 
         <div className="flex items-center gap-1">
-          <ShortcutsDialog />
+          <ShortcutsDialog isDarkBg={isDarkBg} />
 
           <TooltipProvider delayDuration={300}>
             <Tooltip>
@@ -1453,6 +1520,7 @@ export function ScriptEditor() {
           if (!open) setCommandPaletteAfterBlockId(null)
         }}
         onSelect={handleCommandSelect}
+        isDarkBg={isDarkBg}
       />
 
       {autocomplete && (
@@ -1466,6 +1534,7 @@ export function ScriptEditor() {
           position={autocomplete.position}
           onSelect={handleAutocompleteSelect}
           onClose={() => setAutocomplete(null)}
+          isDarkBg={isDarkBg}
         />
       )}
     </div>
