@@ -140,12 +140,12 @@ const DEFAULT_SCRIPT: ScriptData = {
 
 type PageBg = 'white' | 'black' | 'blue' | 'green' | 'yellow'
 
-const PAGE_BG_OPTIONS: { value: PageBg; label: string; color: string; dark: boolean }[] = [
-  { value: 'white', label: '白色', color: '#ffffff', dark: false },
-  { value: 'black', label: '黑色', color: '#1a1a1a', dark: true },
-  { value: 'blue', label: '淡蓝', color: '#eef6fc', dark: false },
-  { value: 'green', label: '淡绿', color: '#edf7ed', dark: false },
-  { value: 'yellow', label: '淡黄', color: '#fef9e7', dark: false },
+const PAGE_BG_OPTIONS: { value: PageBg; label: string; color: string; darkColor: string; dark: boolean }[] = [
+  { value: 'white', label: '白色', color: '#ffffff', darkColor: '#1a1a1a', dark: false },
+  { value: 'black', label: '黑色', color: '#1a1a1a', darkColor: '#1a1a1a', dark: true },
+  { value: 'blue', label: '淡蓝', color: '#eef6fc', darkColor: '#1e293b', dark: false },
+  { value: 'green', label: '淡绿', color: '#edf7ed', darkColor: '#14532d', dark: false },
+  { value: 'yellow', label: '淡黄', color: '#fef9e7', darkColor: '#422006', dark: false },
 ]
 
 function generateId(): string {
@@ -945,17 +945,9 @@ export function ScriptEditor() {
   
   // 根据当前背景色和深色模式状态计算最终背景色
   const getBgColorWithDarkMode = (bg: string, isDark: boolean): string => {
-    if (!isDark || bg === 'black') {
-      return PAGE_BG_OPTIONS.find(o => o.value === bg)?.color || '#ffffff'
-    }
-    // 深色模式下，将浅色调配成深色调
-    const darkColorMap: Record<string, string> = {
-      'white': '#1a1a1a',
-      'blue': '#1e293b',
-      'green': '#14532d',
-      'yellow': '#422006'
-    }
-    return darkColorMap[bg] || '#1a1a1a'
+    const option = PAGE_BG_OPTIONS.find(o => o.value === bg)
+    if (!option) return '#ffffff'
+    return isDark ? option.darkColor : option.color
   }
   
   const bgColor = getBgColorWithDarkMode(pageBg, isDarkBg)

@@ -105,16 +105,22 @@ const FILE_TYPE_CONFIG: Record<
   folder: { label: '文件夹', icon: Folder, color: 'text-amber-600' },
 }
 
-const PAGE_BG_OPTIONS: { value: string; label: string; color: string; dark: boolean }[] = [
-  { value: 'white', label: '白色', color: '#ffffff', dark: false },
-  { value: 'black', label: '黑色', color: '#1a1a1a', dark: true },
-  { value: 'blue', label: '淡蓝', color: '#eef6fc', dark: false },
-  { value: 'green', label: '淡绿', color: '#edf7ed', dark: false },
-  { value: 'yellow', label: '淡黄', color: '#fef9e7', dark: false },
+const PAGE_BG_OPTIONS: { value: string; label: string; color: string; darkColor: string; dark: boolean }[] = [
+  { value: 'white', label: '白色', color: '#ffffff', darkColor: '#171717', dark: false },
+  { value: 'black', label: '黑色', color: '#1a1a1a', darkColor: '#1a1a1a', dark: true },
+  { value: 'blue', label: '淡蓝', color: '#eef6fc', darkColor: '#1e293b', dark: false },
+  { value: 'green', label: '淡绿', color: '#edf7ed', darkColor: '#14532d', dark: false },
+  { value: 'yellow', label: '淡黄', color: '#fef9e7', darkColor: '#422006', dark: false },
 ]
 
 const getPageBgColor = (bg: string): string => {
   return PAGE_BG_OPTIONS.find(o => o.value === bg)?.color || '#ffffff'
+}
+
+const getPageBgColorWithDarkMode = (bg: string, isDark: boolean): string => {
+  const option = PAGE_BG_OPTIONS.find(o => o.value === bg)
+  if (!option) return '#ffffff'
+  return isDark ? option.darkColor : option.color
 }
 
 const CREATABLE_TYPES: Exclude<BoardFile['type'], 'word' | 'excel'>[] = [
@@ -1074,25 +1080,10 @@ export function BoardWorkspace() {
     setDarkMode(!darkMode)
   }, [darkMode, setDarkMode])
 
-  // 根据当前背景色和深色模式状态计算最终背景色的帮助函数
-  const getBgColorWithDarkMode = (bg: string, isDark: boolean): string => {
-    if (!isDark || bg === 'black') {
-      return getPageBgColor(bg)
-    }
-    // 深色模式下，将浅色调配成深色调
-    const darkColorMap: Record<string, string> = {
-      'white': '#171717',
-      'blue': '#1e293b',
-      'green': '#14532d',
-      'yellow': '#422006'
-    }
-    return darkColorMap[bg] || '#171717'
-  }
-
   // ── Loading State ──
   if (!currentBoard) {
     const isLoadingDark = pageBg === 'black' || darkMode
-    const loadingBg = getBgColorWithDarkMode(pageBg, isLoadingDark)
+    const loadingBg = getPageBgColorWithDarkMode(pageBg, isLoadingDark)
     return (
       <div className="flex h-screen items-center justify-center" style={{ backgroundColor: loadingBg }}>
         <div className="flex flex-col items-center gap-4">
@@ -1105,7 +1096,7 @@ export function BoardWorkspace() {
 
   if (loading) {
     const isLoadingDark = pageBg === 'black' || darkMode
-    const loadingBg = getBgColorWithDarkMode(pageBg, isLoadingDark)
+    const loadingBg = getPageBgColorWithDarkMode(pageBg, isLoadingDark)
     return (
       <div className="flex h-screen flex-col" style={{ backgroundColor: loadingBg }}>
         {/* Header skeleton */}
@@ -1143,7 +1134,7 @@ export function BoardWorkspace() {
   // ═══════════════════════════════════════════════════════════════
 
   const isDarkBg = pageBg === 'black' || darkMode
-  const bgColor = getBgColorWithDarkMode(pageBg, isDarkBg)
+  const bgColor = getPageBgColorWithDarkMode(pageBg, isDarkBg)
 
   // ═══════════════════════════════════════════════════════════════
   // Sidebar Content (shared between desktop & mobile)
@@ -1313,25 +1304,29 @@ export function BoardWorkspace() {
               <div className="space-y-1">
                 <p className="text-[10px] text-muted-foreground font-medium px-2 pb-1">页面背景</p>
                 <div className="flex gap-1">
-                  {PAGE_BG_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      className={cn(
-                        'relative h-7 w-7 rounded-md border-2 transition-all flex items-center justify-center',
-                        pageBg === opt.value
-                          ? 'border-gray-400 scale-110'
-                          : 'border-transparent hover:border-gray-200'
-                      )}
-                      style={{ backgroundColor: opt.color }}
-                      onClick={() => handleSetPageBg(opt.value)}
-                      title={opt.label}
-                    >
-                      {pageBg === opt.value && (
-                        <Check className={cn('h-3.5 w-3.5', opt.dark ? 'text-gray-300' : 'text-gray-600')} />
-                      )}
-                    </button>
-                  ))}
+                  {PAGE_BG_OPTIONS.map((opt) => {
+                    const displayColor = (pageBg === 'black' || darkMode) ? opt.darkColor : opt.color
+                    const isDarkDisplay = (pageBg === 'black' || darkMode) ? true : opt.dark
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        className={cn(
+                          'relative h-7 w-7 rounded-md border-2 transition-all flex items-center justify-center',
+                          pageBg === opt.value
+                            ? 'border-gray-400 scale-110'
+                            : 'border-transparent hover:border-gray-200'
+                        )}
+                        style={{ backgroundColor: displayColor }}
+                        onClick={() => handleSetPageBg(opt.value)}
+                        title={opt.label}
+                      >
+                        {pageBg === opt.value && (
+                          <Check className={cn('h-3.5 w-3.5', isDarkDisplay ? 'text-gray-300' : 'text-gray-600')} />
+                        )}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             </PopoverContent>
