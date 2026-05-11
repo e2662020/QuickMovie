@@ -1074,10 +1074,25 @@ export function BoardWorkspace() {
     setDarkMode(!darkMode)
   }, [darkMode, setDarkMode])
 
+  // 根据当前背景色和深色模式状态计算最终背景色的帮助函数
+  const getBgColorWithDarkMode = (bg: string, isDark: boolean): string => {
+    if (!isDark || bg === 'black') {
+      return getPageBgColor(bg)
+    }
+    // 深色模式下，将浅色调配成深色调
+    const darkColorMap: Record<string, string> = {
+      'white': '#171717',
+      'blue': '#1e293b',
+      'green': '#14532d',
+      'yellow': '#422006'
+    }
+    return darkColorMap[bg] || '#171717'
+  }
+
   // ── Loading State ──
   if (!currentBoard) {
     const isLoadingDark = pageBg === 'black' || darkMode
-    const loadingBg = isLoadingDark ? '#171717' : getPageBgColor(pageBg)
+    const loadingBg = getBgColorWithDarkMode(pageBg, isLoadingDark)
     return (
       <div className="flex h-screen items-center justify-center" style={{ backgroundColor: loadingBg }}>
         <div className="flex flex-col items-center gap-4">
@@ -1090,7 +1105,7 @@ export function BoardWorkspace() {
 
   if (loading) {
     const isLoadingDark = pageBg === 'black' || darkMode
-    const loadingBg = isLoadingDark ? '#171717' : getPageBgColor(pageBg)
+    const loadingBg = getBgColorWithDarkMode(pageBg, isLoadingDark)
     return (
       <div className="flex h-screen flex-col" style={{ backgroundColor: loadingBg }}>
         {/* Header skeleton */}
@@ -1128,7 +1143,7 @@ export function BoardWorkspace() {
   // ═══════════════════════════════════════════════════════════════
 
   const isDarkBg = pageBg === 'black' || darkMode
-  const bgColor = isDarkBg ? '#171717' : getPageBgColor(pageBg)
+  const bgColor = getBgColorWithDarkMode(pageBg, isDarkBg)
 
   // ═══════════════════════════════════════════════════════════════
   // Sidebar Content (shared between desktop & mobile)

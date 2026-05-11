@@ -942,7 +942,23 @@ export function ScriptEditor() {
 
   const isDarkBg = pageBg === 'black' || darkMode
   const bgConfig = PAGE_BG_OPTIONS.find(o => o.value === pageBg) || PAGE_BG_OPTIONS[0]
-  const bgColor = isDarkBg ? '#1a1a1a' : bgConfig.color
+  
+  // 根据当前背景色和深色模式状态计算最终背景色
+  const getBgColorWithDarkMode = (bg: string, isDark: boolean): string => {
+    if (!isDark || bg === 'black') {
+      return PAGE_BG_OPTIONS.find(o => o.value === bg)?.color || '#ffffff'
+    }
+    // 深色模式下，将浅色调配成深色调
+    const darkColorMap: Record<string, string> = {
+      'white': '#1a1a1a',
+      'blue': '#1e293b',
+      'green': '#14532d',
+      'yellow': '#422006'
+    }
+    return darkColorMap[bg] || '#1a1a1a'
+  }
+  
+  const bgColor = getBgColorWithDarkMode(pageBg, isDarkBg)
 
   const characterOptions = useMemo<AutocompleteOption[]>(() => {
     return storyElements
