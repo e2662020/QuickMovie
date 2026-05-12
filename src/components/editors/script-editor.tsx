@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useAppStore, type StoryElement } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -504,6 +505,14 @@ function ScriptBlockEditor({
 }: ScriptBlockEditorProps) {
   const editableRef = useRef<HTMLDivElement>(null)
   const [isFocused, setIsFocused] = useState(false)
+  const isMobile = useIsMobile()
+  
+  // Mobile swipe to delete state
+  const [swipeOffset, setSwipeOffset] = useState(0)
+  const [isSwiping, setIsSwiping] = useState(false)
+  const swipeStartX = useRef(0)
+  const swipeCurrentX = useRef(0)
+  const swipeThreshold = 80
 
   const precedingCharName =
     block.type === 'dialogue'
@@ -642,6 +651,39 @@ function ScriptBlockEditor({
     }
   }, [block.type, block.id, onShowAutocomplete])
 
+  // Mobile swipe handlers
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!isMobile || blocks.length <= 1) return
+    swipeStartX.current = e.touches[0].clientX
+    swipeCurrentX.current = e.touches[0].clientX
+    setIsSwiping(true)
+  }, [isMobile, blocks.length])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isSwiping) return
+    swipeCurrentX.current = e.touches[0].clientX
+    const diff = swipeStartX.current - swipeCurrentX.current
+    if (diff > 0) {
+      setSwipeOffset(Math.min(diff, 120))
+    }
+  }, [isSwiping])
+
+  const handleTouchEnd = useCallback(() => {
+    if (!isSwiping) return
+    setIsSwiping(false)
+    const diff = swipeStartX.current - swipeCurrentX.current
+    if (diff >= swipeThreshold) {
+      onDelete(block.id)
+      toast.success('已删除')
+    }
+    setSwipeOffset(0)
+  }, [isSwiping, swipeThreshold, block.id, onDelete])
+
+  const handleTouchCancel = useCallback(() => {
+    setIsSwiping(false)
+    setSwipeOffset(0)
+  }, [])
+
   const linkedElement = block.linkedElementId
     ? storyElements.find((el) => el.id === block.linkedElementId)
     : null
@@ -650,7 +692,7 @@ function ScriptBlockEditor({
     <div
       data-block-id={block.id}
       className={cn(
-        'group/script-block relative flex items-start gap-3 py-2 px-4 transition-colors',
+        'group/script-block relative flex items-start gap-3 py-2 px-4 transition-colors overflow-hidden',
         block.type === 'scene_heading' && 'mt-6 pt-3',
         isFocused && (isDarkBg ? 'bg-white/5' : 'bg-gray-50'),
         !isFocused && !isDarkBg && 'hover:bg-gray-50/60',
@@ -658,7 +700,25 @@ function ScriptBlockEditor({
         emphasisBlocks.has(block.id) && (isDarkBg ? 'bg-amber-900/20' : 'bg-amber-50'),
       )}
       onFocus={() => setIsFocused(true)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchCancel}
+      style={isMobile ? { transform: `translateX(-${swipeOffset}px)`, transition: isSwiping ? 'none' : 'transform 0.2s ease' } : undefined}
     >
+      {/* Mobile swipe delete background */}
+      {isMobile && blocks.length > 1 && (
+        <div 
+          className="absolute inset-y-0 right-0 flex items-center justify-end pr-4 bg-red-500 transition-opacity"
+          style={{ 
+            width: `${swipeOffset}px`, 
+            opacity: swipeOffset > 20 ? 1 : 0,
+            transition: isSwiping ? 'none' : 'opacity 0.2s ease'
+          }}
+        >
+          <Trash2 className="h-5 w-5 text-white" />
+        </div>
+      )}
       <div className="flex items-start pt-1 select-none shrink-0 w-10">
         <span className={cn(
           'text-[10px] font-medium leading-none',
@@ -732,64 +792,72 @@ function ScriptBlockEditor({
         )}
       </div>
 
-      <div className={cn(
-        'flex flex-col items-center pt-1 select-none shrink-0 w-6 opacity-0 group-hover/script-block:opacity-100 transition-opacity',
-      )}>
-        {block.type === 'dialogue' && (
-          <TooltipProvider delayDuration={300}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn(
-                    'h-6 w-6 rounded-md',
-                    emphasisBlocks.has(block.id)
-                      ? isDarkBg
-                        ? 'bg-amber-900/40 text-amber-400 hover:bg-amber-900/60'
-                        : 'bg-amber-100 text-amber-600 hover:bg-amber-200'
-                      : isDarkBg
-                        ? 'text-gray-600 hover:text-amber-400 hover:bg-white/10'
-                        : 'text-gray-300 hover:text-amber-500 hover:bg-amber-50'
-                  )}
-                  onClick={() => onToggleEmphasis(block.id)}
-                >
-                  <Sparkles className="h-3 w-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left">重读笔 (Ctrl+Shift+B)</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-        {blocks.length > 1 && (
-          <TooltipProvider delayDuration={300}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={cn(
-                    'h-6 w-6 rounded-md',
-                    isDarkBg
-                      ? 'text-gray-600 hover:text-red-400 hover:bg-white/10'
-                      : 'text-gray-300 hover:text-red-500 hover:bg-red-50'
-                  )}
-                  onClick={() => onDelete(block.id)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="left">删除块</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-      </div>
+      {/* Desktop action buttons - hidden on mobile */}
+      {!isMobile && (
+        <div className={cn(
+          'flex flex-col items-center pt-1 select-none shrink-0 w-6 opacity-0 group-hover/script-block:opacity-100 transition-opacity',
+        )}>
+          {block.type === 'dialogue' && (
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      'h-6 w-6 rounded-md',
+                      emphasisBlocks.has(block.id)
+                        ? isDarkBg
+                          ? 'bg-amber-900/40 text-amber-400 hover:bg-amber-900/60'
+                          : 'bg-amber-100 text-amber-600 hover:bg-amber-200'
+                        : isDarkBg
+                          ? 'text-gray-600 hover:text-amber-400 hover:bg-white/10'
+                          : 'text-gray-300 hover:text-amber-500 hover:bg-amber-50'
+                    )}
+                    onClick={() => onToggleEmphasis(block.id)}
+                  >
+                    <Sparkles className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">重读笔 (Ctrl+Shift+B)</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          {blocks.length > 1 && (
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      'h-6 w-6 rounded-md',
+                      isDarkBg
+                        ? 'text-gray-600 hover:text-red-400 hover:bg-white/10'
+                        : 'text-gray-300 hover:text-red-500 hover:bg-red-50'
+                    )}
+                    onClick={() => onDelete(block.id)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">删除块</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+      )}
     </div>
   )
 }
 
 function ShortcutsDialog({ isDarkBg }: { isDarkBg: boolean }) {
   const [open, setOpen] = useState(false)
+  const isMobile = useIsMobile()
+  
+  // Hide on mobile
+  if (isMobile) return null
+  
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>

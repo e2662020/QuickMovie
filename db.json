@@ -40,6 +40,17 @@
       "sortOrder": 0,
       "createdAt": "2026-05-10T14:28:43.061Z",
       "updatedAt": "2026-05-12T14:31:04.552Z"
+    },
+    {
+      "id": "file-mp2qnfxriva0kc",
+      "boardId": "board-mozv2l91erx88b",
+      "parentId": null,
+      "name": "未命名策划案",
+      "type": "planning",
+      "content": "",
+      "sortOrder": 1,
+      "createdAt": "2026-05-12T14:41:04.623Z",
+      "updatedAt": "2026-05-12T14:41:04.623Z"
     }
   ],
   "elements": [],

@@ -686,6 +686,8 @@ export function BoardWorkspace() {
     darkMode,
     setDarkMode,
     setView,
+    addDeletedFile,
+    undoDeleteFile,
   } = useAppStore()
 
   const isMobile = useIsMobile()
@@ -964,7 +966,45 @@ export function BoardWorkspace() {
         toast.error(data.error || '删除失败')
         return
       }
-      toast.success('已删除')
+      
+      // Save deleted file for undo
+      addDeletedFile(targetFile)
+      
+      toast.success('已删除', {
+        action: {
+          label: '撤回',
+          onClick: async () => {
+            const restoredFile = undoDeleteFile()
+            if (restoredFile) {
+              try {
+                const restoreRes = await fetch('/api/boards/files', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    boardId: restoredFile.boardId,
+                    parentId: restoredFile.parentId,
+                    name: restoredFile.name,
+                    type: restoredFile.type,
+                    content: restoredFile.content,
+                  }),
+                })
+                if (restoreRes.ok) {
+                  toast.success('已撤回')
+                  await loadFiles()
+                  if (restoredFile.parentId) {
+                    await loadChildren(restoredFile.parentId, true)
+                  }
+                } else {
+                  toast.error('撤回失败')
+                }
+              } catch {
+                toast.error('撤回失败')
+              }
+            }
+          },
+        },
+      })
+      
       setDeleteOpen(false)
       // If deleting current file, clear selection
       if (currentFile?.id === targetFile.id) {

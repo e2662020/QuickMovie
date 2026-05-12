@@ -98,6 +98,8 @@ interface AppState {
   resourcePanelOpen: boolean
   pageBg: string
   darkMode: boolean
+  deletedFiles: BoardFile[]
+  deletedFilesTimeout: ReturnType<typeof setTimeout> | null
 
   setUser: (user: User | null) => void
   setToken: (token: string | null) => void
@@ -117,6 +119,9 @@ interface AppState {
   setResourcePanelOpen: (open: boolean) => void
   setPageBg: (bg: string) => void
   setDarkMode: (dark: boolean) => void
+  addDeletedFile: (file: BoardFile) => void
+  undoDeleteFile: () => BoardFile | null
+  clearDeletedFiles: () => void
   reset: () => void
 }
 
@@ -144,6 +149,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
   resourcePanelOpen: false,
   pageBg: typeof window !== 'undefined' ? localStorage.getItem('script-editor-bg') || 'white' : 'white',
   darkMode: false,
+  deletedFiles: [],
+  deletedFilesTimeout: null,
 
   setUser: (user) => set({ user }),
   setToken: (token) => set({ token }),
@@ -174,6 +181,40 @@ export const useAppStore = create<AppState>()((set, get) => ({
     set({ pageBg: bg })
   },
   setDarkMode: (dark) => set({ darkMode: dark }),
+  addDeletedFile: (file) => {
+    const state = get()
+    if (state.deletedFilesTimeout) {
+      clearTimeout(state.deletedFilesTimeout)
+    }
+    const timeout = setTimeout(() => {
+      set({ deletedFiles: [], deletedFilesTimeout: null })
+    }, 30000)
+    set({ 
+      deletedFiles: [...state.deletedFiles, file], 
+      deletedFilesTimeout: timeout 
+    })
+  },
+  undoDeleteFile: () => {
+    const state = get()
+    if (state.deletedFiles.length === 0) return null
+    const file = state.deletedFiles[state.deletedFiles.length - 1]
+    const newDeletedFiles = state.deletedFiles.slice(0, -1)
+    if (newDeletedFiles.length === 0 && state.deletedFilesTimeout) {
+      clearTimeout(state.deletedFilesTimeout)
+    }
+    set({ 
+      deletedFiles: newDeletedFiles,
+      deletedFilesTimeout: newDeletedFiles.length === 0 ? null : state.deletedFilesTimeout
+    })
+    return file
+  },
+  clearDeletedFiles: () => {
+    const state = get()
+    if (state.deletedFilesTimeout) {
+      clearTimeout(state.deletedFilesTimeout)
+    }
+    set({ deletedFiles: [], deletedFilesTimeout: null })
+  },
   reset: () => set({
     user: null,
     token: null,
@@ -186,5 +227,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
     boardFiles: [],
     storyElements: [],
     resources: [],
+    deletedFiles: [],
+    deletedFilesTimeout: null,
   }),
 }))
