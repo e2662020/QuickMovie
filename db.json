@@ -36,10 +36,10 @@
       "parentId": null,
       "name": "未命名剧本",
       "type": "script",
-      "content": "",
+      "content": "{\"title\":\"\",\"writer\":\"\",\"version\":\"第一稿\",\"blocks\":[{\"id\":\"default-2\",\"type\":\"action\",\"content\":\"在这里开始写作你的剧本...\"}]}",
       "sortOrder": 0,
       "createdAt": "2026-05-10T14:28:43.061Z",
-      "updatedAt": "2026-05-10T14:28:43.061Z"
+      "updatedAt": "2026-05-12T14:31:04.552Z"
     }
   ],
   "elements": [],
@@ -51,6 +51,10 @@
     },
     {
       "token": "mozv5mkmq0rp0umozv5mkmkouja3",
+      "userId": "user-001"
+    },
+    {
+      "token": "mp2qa4z8bor1f2mp2qa4z8x712hr",
       "userId": "user-001"
     }
   ]
