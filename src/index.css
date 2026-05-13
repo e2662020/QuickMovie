@@ -290,3 +290,38 @@
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.2);
 }
+
+.mdxeditor-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.mdxeditor-wrapper > div {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.mdxeditor-wrapper [data-lexical-editor] {
+  flex: 1;
+  outline: none;
+  overflow-y: auto;
+}
+
+.mdxeditor-wrapper [data-lexical-editor]:focus {
+  outline: none;
+}
+
+.mdxeditor-wrapper [class*="_rootContentEditableWrapper"] {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.mdxeditor-wrapper [class*="_rootContentEditableWrapper"] > div {
+  flex: 1;
+}
+
+.dark .mdxeditor-wrapper [class*="toolbar"] {
+  border-color: oklch(1 0 0 / 10%);
+}

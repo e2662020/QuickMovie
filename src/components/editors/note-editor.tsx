@@ -1,13 +1,9 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { useAppStore, type BoardFile } from '@/lib/store'
-import { cn } from '@/lib/utils'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { useAppStore } from '@/lib/store'
 import { toast } from 'sonner'
-
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
@@ -20,37 +16,45 @@ import {
   ResizablePanel,
   ResizableHandle,
 } from '@/components/ui/resizable'
-
 import {
   Plus,
-  X,
   Columns,
-  Eye,
-  Edit,
-  Bold,
-  Italic,
-  Heading1,
-  Heading2,
-  List,
-  Link,
-  Image as ImageIcon,
-  Code,
-  Quote,
-  Minus,
   Save,
   GripVertical,
   FileText,
   Loader2,
+  X,
 } from 'lucide-react'
 
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
-
-// ═══════════════════════════════════════════════════════════════════
-// Types
-// ═══════════════════════════════════════════════════════════════════
+import {
+  MDXEditor,
+  type MDXEditorMethods,
+  headingsPlugin,
+  listsPlugin,
+  linkPlugin,
+  quotePlugin,
+  thematicBreakPlugin,
+  markdownShortcutPlugin,
+  codeBlockPlugin,
+  codeMirrorPlugin,
+  tablePlugin,
+  linkDialogPlugin,
+  diffSourcePlugin,
+  toolbarPlugin,
+  UndoRedo,
+  BoldItalicUnderlineToggles,
+  BlockTypeSelect,
+  CreateLink,
+  ListsToggle,
+  InsertTable,
+  InsertCodeBlock,
+  InsertThematicBreak,
+  StrikeThroughSupSubToggles,
+  CodeToggle,
+  Separator as ToolbarSeparator,
+  DiffSourceToggleWrapper,
+} from '@mdxeditor/editor'
+import '@mdxeditor/editor/style.css'
 
 interface NoteColumn {
   id: string
@@ -62,12 +66,6 @@ interface NoteData {
   columns: NoteColumn[]
 }
 
-type ViewMode = 'edit' | 'preview' | 'split'
-
-// ═══════════════════════════════════════════════════════════════════
-// Constants
-// ═══════════════════════════════════════════════════════════════════
-
 const MAX_COLUMNS = 4
 const AUTO_SAVE_DELAY = 1500
 
@@ -76,14 +74,6 @@ const DEFAULT_COLUMN: NoteColumn = {
   title: '笔记 1',
   content: '',
 }
-
-const DEFAULT_DATA: NoteData = {
-  columns: [{ ...DEFAULT_COLUMN }],
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// Helpers
-// ═══════════════════════════════════════════════════════════════════
 
 function parseNoteContent(content: string | undefined): NoteData {
   if (!content) return { columns: [{ ...DEFAULT_COLUMN }] }
@@ -101,7 +91,6 @@ function parseNoteContent(content: string | undefined): NoteData {
       }
     }
   } catch {
-    // If content is not valid JSON, treat it as a single column
     return {
       columns: [{ id: crypto.randomUUID(), title: '笔记 1', content: content || '' }],
     }
@@ -113,276 +102,77 @@ function generateId(): string {
   return crypto.randomUUID()
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// Markdown Toolbar
-// ═══════════════════════════════════════════════════════════════════
-
-interface ToolbarAction {
-  icon: React.ReactNode
-  label: string
-  action: (textarea: HTMLTextAreaElement) => void
-}
-
-function getToolbarActions(): ToolbarAction[] {
-  return [
-    {
-      icon: <Bold className="h-3.5 w-3.5" />,
-      label: '粗体',
-      action: wrapSelection('**', '**'),
+const mdxPlugins = [
+  headingsPlugin(),
+  listsPlugin(),
+  linkPlugin(),
+  quotePlugin(),
+  thematicBreakPlugin(),
+  markdownShortcutPlugin(),
+  codeBlockPlugin({ defaultCodeBlockLanguage: 'txt' }),
+  codeMirrorPlugin({
+    codeBlockLanguages: {
+      js: 'JavaScript',
+      ts: 'TypeScript',
+      tsx: 'TypeScript JSX',
+      jsx: 'JavaScript JSX',
+      python: 'Python',
+      html: 'HTML',
+      css: 'CSS',
+      json: 'JSON',
+      bash: 'Bash',
+      sql: 'SQL',
+      markdown: 'Markdown',
+      txt: 'Plain Text',
     },
-    {
-      icon: <Italic className="h-3.5 w-3.5" />,
-      label: '斜体',
-      action: wrapSelection('*', '*'),
-    },
-    {
-      icon: <Heading1 className="h-3.5 w-3.5" />,
-      label: '标题 1',
-      action: prependLine('# '),
-    },
-    {
-      icon: <Heading2 className="h-3.5 w-3.5" />,
-      label: '标题 2',
-      action: prependLine('## '),
-    },
-    {
-      icon: <List className="h-3.5 w-3.5" />,
-      label: '列表',
-      action: prependLine('- '),
-    },
-    {
-      icon: <Link className="h-3.5 w-3.5" />,
-      label: '链接',
-      action: wrapSelection('[', '](url)'),
-    },
-    {
-      icon: <ImageIcon className="h-3.5 w-3.5" />,
-      label: '图片',
-      action: prependLine('![alt](url)'),
-    },
-    {
-      icon: <Code className="h-3.5 w-3.5" />,
-      label: '代码块',
-      action: wrapSelection('```\n', '\n```'),
-    },
-    {
-      icon: <Quote className="h-3.5 w-3.5" />,
-      label: '引用',
-      action: prependLine('> '),
-    },
-    {
-      icon: <Minus className="h-3.5 w-3.5" />,
-      label: '分割线',
-      action: () => insertAtLine('\n---\n'),
-    },
-  ]
-}
-
-function wrapSelection(before: string, after: string) {
-  return (textarea: HTMLTextAreaElement) => {
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const selectedText = textarea.value.substring(start, end)
-    const replacement = `${before}${selectedText || 'text'}${after}`
-    const newValue =
-      textarea.value.substring(0, start) +
-      replacement +
-      textarea.value.substring(end)
-
-    // We use a synthetic event approach - dispatch input event
-    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-      window.HTMLTextAreaElement.prototype,
-      'value'
-    )!.set!
-    nativeInputValueSetter.call(textarea, newValue)
-    textarea.dispatchEvent(new Event('input', { bubbles: true }))
-
-    // Set cursor position
-    requestAnimationFrame(() => {
-      textarea.focus()
-      if (selectedText) {
-        textarea.selectionStart = start + before.length
-        textarea.selectionEnd = start + before.length + selectedText.length
-      } else {
-        textarea.selectionStart = start + before.length
-        textarea.selectionEnd = start + before.length + 4
-      }
-    })
-  }
-}
-
-function prependLine(prefix: string) {
-  return (textarea: HTMLTextAreaElement) => {
-    const start = textarea.selectionStart
-    const lineStart = textarea.value.lastIndexOf('\n', start - 1) + 1
-    const newValue =
-      textarea.value.substring(0, lineStart) +
-      prefix +
-      textarea.value.substring(lineStart)
-
-    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-      window.HTMLTextAreaElement.prototype,
-      'value'
-    )!.set!
-    nativeInputValueSetter.call(textarea, newValue)
-    textarea.dispatchEvent(new Event('input', { bubbles: true }))
-
-    requestAnimationFrame(() => {
-      textarea.focus()
-      const cursorPos = lineStart + prefix.length
-      textarea.selectionStart = cursorPos
-      textarea.selectionEnd = cursorPos
-    })
-  }
-}
-
-function insertAtLine(text: string) {
-  return (textarea: HTMLTextAreaElement) => {
-    const pos = textarea.selectionStart
-    const newValue =
-      textarea.value.substring(0, pos) +
-      text +
-      textarea.value.substring(textarea.selectionEnd)
-
-    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-      window.HTMLTextAreaElement.prototype,
-      'value'
-    )!.set!
-    nativeInputValueSetter.call(textarea, newValue)
-    textarea.dispatchEvent(new Event('input', { bubbles: true }))
-
-    requestAnimationFrame(() => {
-      textarea.focus()
-      textarea.selectionStart = pos + text.length
-      textarea.selectionEnd = pos + text.length
-    })
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// Markdown Preview
-// ═══════════════════════════════════════════════════════════════════
-
-function MarkdownPreview({ content }: { content: string }) {
-  if (!content.trim()) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center">
-          <FileText className="mx-auto h-8 w-8 text-muted-foreground/30" />
-          <p className="mt-2 text-xs text-muted-foreground/50">输入 Markdown 内容以预览</p>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div
-      className="prose prose-sm prose-neutral dark:prose-invert max-w-none
-        prose-headings:font-semibold prose-headings:tracking-tight
-        prose-h1:text-xl prose-h1:mt-6 prose-h1:mb-3
-        prose-h2:text-lg prose-h2:mt-5 prose-h2:mb-2
-        prose-h3:text-base prose-h3:mt-4 prose-h3:mb-2
-        prose-p:leading-relaxed prose-p:my-2
-        prose-li:my-0.5
-        prose-blockquote:border-l-primary/40 prose-blockquote:not-italic
-        prose-pre:bg-transparent prose-pre:p-0
-        prose-code:before:content-none prose-code:after:content-none
-        prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-        prose-img:rounded-md prose-img:my-3
-        prose-table:text-xs
-        prose-th:text-left prose-th:font-semibold prose-th:px-3 prose-th:py-1.5 prose-th:border-b
-        prose-td:px-3 prose-td:py-1.5 prose-td:border-b prose-td:border-border
-        prose-hr:my-4"
-    >
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      components={{
-        code({ className, children, ...props }) {
-          const match = /language-(\w+)/.exec(className || '')
-          const isInline = !match && !className
-
-          if (isInline) {
-            return (
-              <code
-                className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono"
-                {...props}
-              >
-                {children}
-              </code>
-            )
-          }
-
-          return (
-            <SyntaxHighlighter
-              style={oneDark}
-              language={match ? match[1] : 'text'}
-              PreTag="div"
-              className="rounded-md !my-3 text-xs"
-              showLineNumbers={false}
-            >
-              {String(children).replace(/\n$/, '')}
-            </SyntaxHighlighter>
-          )
-        },
-        // Ensure links open in new tab
-        a({ children, ...props }) {
-          return (
-            <a target="_blank" rel="noopener noreferrer" {...props}>
-              {children}
-            </a>
-          )
-        },
-      }}
-    >
-      {content}
-    </ReactMarkdown>
-    </div>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// Note Column Component
-// ═══════════════════════════════════════════════════════════════════
+  }),
+  tablePlugin(),
+  linkDialogPlugin(),
+  diffSourcePlugin({ viewMode: 'rich-text' }),
+  toolbarPlugin({
+    toolbarContents: () => (
+      <DiffSourceToggleWrapper options={['rich-text', 'source']}>
+        <UndoRedo />
+        <ToolbarSeparator />
+        <BoldItalicUnderlineToggles />
+        <StrikeThroughSupSubToggles />
+        <CodeToggle />
+        <ToolbarSeparator />
+        <BlockTypeSelect />
+        <ListsToggle />
+        <ToolbarSeparator />
+        <CreateLink />
+        <InsertTable />
+        <InsertCodeBlock />
+        <InsertThematicBreak />
+      </DiffSourceToggleWrapper>
+    ),
+  }),
+]
 
 interface NoteColumnEditorProps {
   column: NoteColumn
-  viewMode: ViewMode
   onUpdate: (id: string, updates: Partial<NoteColumn>) => void
   onRemove: (id: string) => void
   canRemove: boolean
   index: number
+  fileKey: string
 }
 
 function NoteColumnEditor({
   column,
-  viewMode,
   onUpdate,
   onRemove,
-  onCycleViewMode,
   canRemove,
   index,
-}: NoteColumnEditorProps & {
-  onCycleViewMode: (id: string) => void
-}) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const titleInputRef = useRef<HTMLInputElement>(null)
-  const [localContent, setLocalContent] = useState(column.content)
+  fileKey,
+}: NoteColumnEditorProps) {
   const [editingTitle, setEditingTitle] = useState(false)
 
-  // Sync local content when column changes externally
-  const prevColumnIdRef = useRef(column.id)
-  useEffect(() => {
-    if (prevColumnIdRef.current !== column.id) {
-      prevColumnIdRef.current = column.id
-      setLocalContent(column.content) // eslint-disable-line react-hooks/set-state-in-effect
-    }
-  }, [column.id, column.content]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleContentChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const newContent = e.target.value
-      setLocalContent(newContent)
-      onUpdate(column.id, { content: newContent })
+  const handleEditorChange = useCallback(
+    (markdown: string, initialMarkdownNormalize: boolean) => {
+      if (initialMarkdownNormalize) return
+      onUpdate(column.id, { content: markdown })
     },
     [column.id, onUpdate]
   )
@@ -394,29 +184,12 @@ function NoteColumnEditor({
     [column.id, onUpdate]
   )
 
-  const handleToolbarAction = useCallback(
-    (action: (textarea: HTMLTextAreaElement) => void) => {
-      if (textareaRef.current) {
-        action(textareaRef.current)
-        // Read the value after the action
-        const newValue = textareaRef.current.value
-        setLocalContent(newValue)
-        onUpdate(column.id, { content: newValue })
-      }
-    },
-    [column.id, onUpdate]
-  )
-
-  const toolbarActions = useMemo(() => getToolbarActions(), [])
-
   return (
     <div className="flex h-full flex-col min-w-0">
-      {/* Column Header */}
       <div className="flex items-center gap-2 border-b px-3 py-2 bg-muted/20">
         <div className="flex items-center gap-1.5 flex-1 min-w-0">
           {editingTitle ? (
             <input
-              ref={titleInputRef}
               value={column.title}
               onChange={handleTitleChange}
               onBlur={() => setEditingTitle(false)}
@@ -438,41 +211,6 @@ function NoteColumnEditor({
           <span className="text-[10px] text-muted-foreground/60 shrink-0">#{index + 1}</span>
         </div>
 
-        {/* View mode toggle */}
-        <div className="flex items-center bg-muted rounded-md p-0.5">
-          <TooltipProvider delayDuration={400}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={viewMode === 'edit' ? 'secondary' : 'ghost'}
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={() => onCycleViewMode(column.id)}
-                >
-                  <Edit className="h-3 w-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">编辑模式</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <TooltipProvider delayDuration={400}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={viewMode === 'preview' ? 'secondary' : 'ghost'}
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={() => onCycleViewMode(column.id)}
-                >
-                  <Eye className="h-3 w-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">预览模式</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-
-        {/* Close button */}
         {canRemove && (
           <TooltipProvider delayDuration={400}>
             <Tooltip>
@@ -492,107 +230,39 @@ function NoteColumnEditor({
         )}
       </div>
 
-      {/* Toolbar */}
-      {(viewMode === 'edit' || viewMode === 'split') && (
-        <div className="flex items-center gap-0.5 border-b px-2 py-1.5 bg-background overflow-x-auto">
-          <Separator orientation="vertical" className="h-4 mx-1 shrink-0" />
-          {toolbarActions.map((action) => (
-            <TooltipProvider key={action.label} delayDuration={400}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
-                    onClick={() => handleToolbarAction(action.action)}
-                  >
-                    {action.icon}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">
-                  {action.label}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ))}
-        </div>
-      )}
-
-      {/* Editor / Preview Area */}
-      <div className="flex-1 overflow-hidden">
-        {viewMode === 'split' ? (
-          <div className="flex h-full">
-            {/* Editor pane */}
-            <div className="flex-1 border-r overflow-hidden">
-              <textarea
-                ref={textareaRef}
-                value={localContent}
-                onChange={handleContentChange}
-                className="h-full w-full resize-none bg-transparent p-4 font-mono text-sm leading-relaxed outline-none placeholder:text-muted-foreground/40"
-                placeholder="在此输入 Markdown 内容..."
-                spellCheck={false}
-              />
-            </div>
-            {/* Preview pane */}
-            <ScrollArea className="flex-1">
-              <div className="p-4">
-                <MarkdownPreview content={column.content} />
-              </div>
-            </ScrollArea>
-          </div>
-        ) : viewMode === 'edit' ? (
-          <textarea
-            ref={textareaRef}
-            value={localContent}
-            onChange={handleContentChange}
-            className="h-full w-full resize-none bg-transparent p-4 font-mono text-sm leading-relaxed outline-none placeholder:text-muted-foreground/40"
-            placeholder="在此输入 Markdown 内容..."
-            spellCheck={false}
-          />
-        ) : (
-          <ScrollArea className="h-full">
-            <div className="p-4">
-              <MarkdownPreview content={column.content} />
-            </div>
-          </ScrollArea>
-        )}
+      <div className="flex-1 overflow-hidden mdxeditor-wrapper">
+        <MDXEditor
+          key={`${column.id}-${fileKey}`}
+          markdown={column.content}
+          onChange={handleEditorChange}
+          contentEditableClassName="prose prose-sm prose-neutral dark:prose-invert max-w-none px-6 py-4 outline-none min-h-full"
+          plugins={mdxPlugins}
+          placeholder="在此输入 Markdown 内容..."
+          spellCheck={false}
+        />
       </div>
     </div>
   )
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// Main Component
-// ═══════════════════════════════════════════════════════════════════
-
 export function NoteEditor() {
   const { currentFile, setCurrentFile, token } = useAppStore()
 
-  // ── Local State ──
   const [columns, setColumns] = useState<NoteColumn[]>([])
-  const [viewModes, setViewModes] = useState<Record<string, ViewMode>>({})
   const [saving, setSaving] = useState(false)
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null)
   const [dirty, setDirty] = useState(false)
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingSaveRef = useRef(false)
 
-  // ── Initialize from file content ──
   useEffect(() => {
     if (currentFile) {
       const data = parseNoteContent(currentFile.content)
       setColumns(data.columns)
-      // Initialize view modes
-      const modes: Record<string, ViewMode> = {}
-      data.columns.forEach((col) => {
-        modes[col.id] = 'split'
-      })
-      setViewModes(modes)
       setDirty(false)
     }
   }, [currentFile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Auto-save with debounce ──
   useEffect(() => {
     if (!dirty || !currentFile) return
 
@@ -614,7 +284,6 @@ export function NoteEditor() {
     }
   }, [columns]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Save handler ──
   const handleSave = useCallback(
     async (showToast = true) => {
       if (!currentFile) return
@@ -663,7 +332,6 @@ export function NoteEditor() {
     [currentFile, columns, token, setCurrentFile]
   )
 
-  // ── Column Operations ──
   const addColumn = useCallback(() => {
     if (columns.length >= MAX_COLUMNS) {
       toast.warning(`最多支持 ${MAX_COLUMNS} 列`)
@@ -675,7 +343,6 @@ export function NoteEditor() {
       content: '',
     }
     setColumns((prev) => [...prev, newColumn])
-    setViewModes((prev) => ({ ...prev, [newColumn.id]: 'split' }))
     setDirty(true)
   }, [columns.length])
 
@@ -683,11 +350,6 @@ export function NoteEditor() {
     (id: string) => {
       if (columns.length <= 1) return
       setColumns((prev) => prev.filter((col) => col.id !== id))
-      setViewModes((prev) => {
-        const next = { ...prev }
-        delete next[id]
-        return next
-      })
       setDirty(true)
     },
     [columns.length]
@@ -703,18 +365,6 @@ export function NoteEditor() {
     []
   )
 
-  const cycleViewMode = useCallback(
-    (id: string) => {
-      setViewModes((prev) => {
-        const current = prev[id] || 'split'
-        const next: ViewMode = current === 'edit' ? 'split' : current === 'split' ? 'preview' : 'edit'
-        return { ...prev, [id]: next }
-      })
-    },
-    []
-  )
-
-  // ── Keyboard shortcuts ──
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
@@ -726,7 +376,6 @@ export function NoteEditor() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleSave])
 
-  // ── No file guard ──
   if (!currentFile) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -738,7 +387,8 @@ export function NoteEditor() {
     )
   }
 
-  // ── Build resizable panels ──
+  const fileKey = currentFile.id
+
   const panelElements = columns.map((column, index) => (
     <React.Fragment key={column.id}>
       {index > 0 && (
@@ -754,25 +404,18 @@ export function NoteEditor() {
       >
         <NoteColumnEditor
           column={column}
-          viewMode={viewModes[column.id] || 'split'}
-          onUpdate={(id, updates) => {
-            updateColumn(id, updates)
-          }}
+          onUpdate={updateColumn}
           onRemove={removeColumn}
-          onCycleViewMode={cycleViewMode}
           canRemove={columns.length > 1}
           index={index}
+          fileKey={fileKey}
         />
       </ResizablePanel>
     </React.Fragment>
   ))
 
-  // ═══════════════════════════════════════════════════════════════
-  // Render
-  // ═══════════════════════════════════════════════════════════════
   return (
     <div className="flex h-full flex-col">
-      {/* ─── Top Bar ─── */}
       <div className="flex items-center justify-between border-b px-4 py-2.5">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
@@ -799,7 +442,6 @@ export function NoteEditor() {
         </div>
 
         <div className="flex items-center gap-1.5">
-          {/* Column count */}
           <div className="flex items-center gap-1.5 mr-1">
             <TooltipProvider delayDuration={400}>
               <Tooltip>
@@ -817,58 +459,14 @@ export function NoteEditor() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
-                  {columns.length >= MAX_COLUMNS
-                    ? '已达到最大列数'
-                    : '添加新列'}
+                  {columns.length >= MAX_COLUMNS ? '已达到最大列数' : '添加新列'}
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
 
-          {/* View mode switcher (global) */}
-          <TooltipProvider delayDuration={400}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => {
-                    const currentMode = viewModes[columns[0]?.id] || 'split'
-                    const nextMode: ViewMode =
-                      currentMode === 'edit' ? 'split' : currentMode === 'split' ? 'preview' : 'edit'
-                    setViewModes((prev) => {
-                      const next = { ...prev }
-                      columns.forEach((col) => {
-                        next[col.id] = nextMode
-                      })
-                      return next
-                    })
-                  }}
-                >
-                  {(() => {
-                    const mode = viewModes[columns[0]?.id] || 'split'
-                    if (mode === 'edit') return <Edit className="h-3.5 w-3.5" />
-                    if (mode === 'preview') return <Eye className="h-3.5 w-3.5" />
-                    return (
-                      <div className="flex items-center gap-0.5">
-                        <Edit className="h-3 w-3" />
-                        <Separator orientation="vertical" className="h-3" />
-                        <Eye className="h-3 w-3" />
-                      </div>
-                    )
-                  })()}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                切换视图模式
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
           <Separator orientation="vertical" className="h-5" />
 
-          {/* Save button */}
           <TooltipProvider delayDuration={400}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -887,33 +485,24 @@ export function NoteEditor() {
                   <span className="hidden sm:inline">保存</span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">
-                保存笔记 (Ctrl+S)
-              </TooltipContent>
+              <TooltipContent side="bottom">保存笔记 (Ctrl+S)</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
       </div>
 
-      {/* ─── Columns Area ─── */}
       <div className="flex-1 overflow-hidden">
         {columns.length === 1 ? (
-          // Single column: no need for resizable
           <NoteColumnEditor
             column={columns[0]}
-            viewMode={viewModes[columns[0].id] || 'split'}
-            onUpdate={(id, updates) => updateColumn(id, updates)}
+            onUpdate={updateColumn}
             onRemove={removeColumn}
-            onCycleViewMode={cycleViewMode}
             canRemove={false}
             index={0}
+            fileKey={fileKey}
           />
         ) : (
-          // Multi-column: resizable layout
-          <ResizablePanelGroup
-            direction="horizontal"
-            className="h-full"
-          >
+          <ResizablePanelGroup direction="horizontal" className="h-full">
             {panelElements}
           </ResizablePanelGroup>
         )}

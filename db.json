@@ -58,10 +58,10 @@
       "parentId": null,
       "name": "未命名笔记",
       "type": "note",
-      "content": "{\"columns\":[{\"id\":\"a4820094-e9a4-49e9-a67c-beb6d2fe81c8\",\"title\":\"笔记 1\",\"content\":\"# 你好\"}]}",
+      "content": "{\"columns\":[{\"id\":\"a4820094-e9a4-49e9-a67c-beb6d2fe81c8\",\"title\":\"笔记 1\",\"content\":\"# 你好**text**\"}]}",
       "sortOrder": 2,
       "createdAt": "2026-05-13T14:22:17.643Z",
-      "updatedAt": "2026-05-13T14:28:15.668Z"
+      "updatedAt": "2026-05-13T14:34:23.338Z"
     }
   ],
   "elements": [],
