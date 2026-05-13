@@ -358,9 +358,12 @@ function NoteColumnEditor({
   viewMode,
   onUpdate,
   onRemove,
+  onCycleViewMode,
   canRemove,
   index,
-}: NoteColumnEditorProps) {
+}: NoteColumnEditorProps & {
+  onCycleViewMode: (id: string) => void
+}) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const titleInputRef = useRef<HTMLInputElement>(null)
   const [localContent, setLocalContent] = useState(column.content)
@@ -441,10 +444,10 @@ function NoteColumnEditor({
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={viewMode === 'edit' || viewMode === 'split' ? 'secondary' : 'ghost'}
+                  variant={viewMode === 'edit' ? 'secondary' : 'ghost'}
                   size="icon"
                   className="h-6 w-6"
-                  onClick={() => onUpdate(column.id, {})}
+                  onClick={() => onCycleViewMode(column.id)}
                 >
                   <Edit className="h-3 w-3" />
                 </Button>
@@ -459,7 +462,7 @@ function NoteColumnEditor({
                   variant={viewMode === 'preview' ? 'secondary' : 'ghost'}
                   size="icon"
                   className="h-6 w-6"
-                  onClick={() => onUpdate(column.id, {})}
+                  onClick={() => onCycleViewMode(column.id)}
                 >
                   <Eye className="h-3 w-3" />
                 </Button>
@@ -756,6 +759,7 @@ export function NoteEditor() {
             updateColumn(id, updates)
           }}
           onRemove={removeColumn}
+          onCycleViewMode={cycleViewMode}
           canRemove={columns.length > 1}
           index={index}
         />
@@ -900,6 +904,7 @@ export function NoteEditor() {
             viewMode={viewModes[columns[0].id] || 'split'}
             onUpdate={(id, updates) => updateColumn(id, updates)}
             onRemove={removeColumn}
+            onCycleViewMode={cycleViewMode}
             canRemove={false}
             index={0}
           />

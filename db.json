@@ -51,6 +51,17 @@
       "sortOrder": 1,
       "createdAt": "2026-05-12T14:41:04.623Z",
       "updatedAt": "2026-05-12T14:41:04.623Z"
+    },
+    {
+      "id": "file-mp45f50r1xvxky",
+      "boardId": "board-mozv2l91erx88b",
+      "parentId": null,
+      "name": "未命名笔记",
+      "type": "note",
+      "content": "",
+      "sortOrder": 2,
+      "createdAt": "2026-05-13T14:22:17.643Z",
+      "updatedAt": "2026-05-13T14:22:17.643Z"
     }
   ],
   "elements": [],
@@ -66,6 +77,10 @@
     },
     {
       "token": "mp2qa4z8bor1f2mp2qa4z8x712hr",
+      "userId": "user-001"
+    },
+    {
+      "token": "mp45a5ocxk7iermp45a5ocrewtc5",
       "userId": "user-001"
     }
   ]
