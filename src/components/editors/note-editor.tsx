@@ -159,7 +159,7 @@ interface NoteColumnEditorProps {
   fileKey: string
 }
 
-function NoteColumnEditor({
+const NoteColumnEditor = React.memo(function NoteColumnEditor({
   column,
   onUpdate,
   onRemove,
@@ -168,10 +168,10 @@ function NoteColumnEditor({
   fileKey,
 }: NoteColumnEditorProps) {
   const [editingTitle, setEditingTitle] = useState(false)
+  const editorRef = useRef<MDXEditorMethods>(null)
 
   const handleEditorChange = useCallback(
-    (markdown: string, initialMarkdownNormalize: boolean) => {
-      if (initialMarkdownNormalize) return
+    (markdown: string) => {
       onUpdate(column.id, { content: markdown })
     },
     [column.id, onUpdate]
@@ -233,6 +233,7 @@ function NoteColumnEditor({
       <div className="flex-1 overflow-hidden mdxeditor-wrapper">
         <MDXEditor
           key={`${column.id}-${fileKey}`}
+          ref={editorRef}
           markdown={column.content}
           onChange={handleEditorChange}
           contentEditableClassName="prose prose-sm prose-neutral dark:prose-invert max-w-none px-6 py-4 outline-none min-h-full"
@@ -243,10 +244,10 @@ function NoteColumnEditor({
       </div>
     </div>
   )
-}
+})
 
 export function NoteEditor() {
-  const { currentFile, setCurrentFile, token } = useAppStore()
+  const { currentFile } = useAppStore()
 
   const [columns, setColumns] = useState<NoteColumn[]>([])
   const [saving, setSaving] = useState(false)
@@ -297,7 +298,6 @@ export function NoteEditor() {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: JSON.stringify({
             fileId: currentFile.id,
@@ -314,12 +314,6 @@ export function NoteEditor() {
         setDirty(false)
         setLastSavedAt(new Date())
 
-        if (result.file) {
-          setCurrentFile({ ...currentFile, content: result.file.content })
-        } else {
-          setCurrentFile({ ...currentFile, content: JSON.stringify(data) })
-        }
-
         if (showToast) {
           toast.success('笔记已保存')
         }
@@ -329,7 +323,7 @@ export function NoteEditor() {
         setSaving(false)
       }
     },
-    [currentFile, columns, token, setCurrentFile]
+    [currentFile, columns]
   )
 
   const addColumn = useCallback(() => {

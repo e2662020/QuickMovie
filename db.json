@@ -36,10 +36,10 @@
       "parentId": null,
       "name": "未命名剧本",
       "type": "script",
-      "content": "{\"title\":\"\",\"writer\":\"\",\"version\":\"第一稿\",\"blocks\":[{\"id\":\"default-2\",\"type\":\"action\",\"content\":\"在这里开始写作你的剧本...\"}]}",
+      "content": "{\"title\":\"\",\"writer\":\"\",\"version\":\"第一稿\",\"blocks\":[{\"id\":\"default-2\",\"type\":\"action\",\"content\":\"你好，\"}]}",
       "sortOrder": 0,
       "createdAt": "2026-05-10T14:28:43.061Z",
-      "updatedAt": "2026-05-12T14:31:04.552Z"
+      "updatedAt": "2026-05-14T23:00:10.306Z"
     },
     {
       "id": "file-mp2qnfxriva0kc",
@@ -47,10 +47,10 @@
       "parentId": null,
       "name": "未命名策划案",
       "type": "planning",
-      "content": "",
+      "content": "{\"title\":\"111\",\"format\":\"电影\",\"genre\":\"\",\"duration\":\"\",\"targetAudience\":\"\",\"logline\":\"\",\"synopsis\":\"\",\"themes\":[],\"keywords\":[],\"references\":[],\"notes\":\"\"}",
       "sortOrder": 1,
       "createdAt": "2026-05-12T14:41:04.623Z",
-      "updatedAt": "2026-05-12T14:41:04.623Z"
+      "updatedAt": "2026-05-14T23:00:28.489Z"
     },
     {
       "id": "file-mp45f50r1xvxky",
@@ -58,10 +58,21 @@
       "parentId": null,
       "name": "未命名笔记",
       "type": "note",
-      "content": "{\"columns\":[{\"id\":\"a4820094-e9a4-49e9-a67c-beb6d2fe81c8\",\"title\":\"笔记 1\",\"content\":\"# 你好**text**\"}]}",
+      "content": "{\"columns\":[{\"id\":\"a4820094-e9a4-49e9-a67c-beb6d2fe81c8\",\"title\":\"笔记 1\",\"content\":\"#\"}]}",
       "sortOrder": 2,
       "createdAt": "2026-05-13T14:22:17.643Z",
-      "updatedAt": "2026-05-13T14:34:23.338Z"
+      "updatedAt": "2026-05-14T22:59:33.579Z"
+    },
+    {
+      "id": "file-mp63epwm0avdys",
+      "boardId": "board-mozv2l91erx88b",
+      "parentId": null,
+      "name": "未命名故事板",
+      "type": "storyboard",
+      "content": "",
+      "sortOrder": 3,
+      "createdAt": "2026-05-14T23:01:31.174Z",
+      "updatedAt": "2026-05-14T23:01:31.174Z"
     }
   ],
   "elements": [],
@@ -82,6 +93,11 @@
     {
       "token": "mp45a5ocxk7iermp45a5ocrewtc5",
       "userId": "user-001"
+    },
+    {
+      "token": "mp63ashbzawwx4mp63ashbnhe7bx",
+      "userId": "user-001"
     }
-  ]
+  ],
+  "apiKeys": []
 }
