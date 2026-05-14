@@ -983,7 +983,7 @@ function ShortcutsDialog({ isDarkBg }: { isDarkBg: boolean }) {
 }
 
 export function ScriptEditor() {
-  const { currentFile, setCurrentFile, token, storyElements, pageBg, darkMode } = useAppStore()
+  const { currentFile, storyElements, pageBg, darkMode } = useAppStore()
 
   const [data, setData] = useState<ScriptData>(() => ({
     ...DEFAULT_SCRIPT,
@@ -1080,7 +1080,6 @@ export function ScriptEditor() {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: JSON.stringify({
             fileId: currentFile.id,
@@ -1097,12 +1096,6 @@ export function ScriptEditor() {
         setDirty(false)
         setLastSavedAt(new Date())
 
-        if (result.file) {
-          setCurrentFile({ ...currentFile, content: result.file.content })
-        } else {
-          setCurrentFile({ ...currentFile, content: JSON.stringify(data) })
-        }
-
         if (showToast) {
           toast.success('剧本已保存')
         }
@@ -1112,7 +1105,7 @@ export function ScriptEditor() {
         setSaving(false)
       }
     },
-    [currentFile, data, token, setCurrentFile]
+    [currentFile?.id, data]
   )
 
   useEffect(() => {

@@ -976,7 +976,7 @@ function PreviewModal({
 // ═══════════════════════════════════════════════════════════════════
 
 export function ShotEditor() {
-  const { currentFile, setCurrentFile, token } = useAppStore()
+  const { currentFile } = useAppStore()
 
   // ── State ──
   const [data, setData] = useState<ShotBoardData>(DEFAULT_DATA)
@@ -1045,7 +1045,6 @@ export function ShotEditor() {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: JSON.stringify({
             fileId: currentFile.id,
@@ -1062,12 +1061,6 @@ export function ShotEditor() {
         setDirty(false)
         setLastSavedAt(new Date())
 
-        if (result.file) {
-          setCurrentFile({ ...currentFile, content: result.file.content })
-        } else {
-          setCurrentFile({ ...currentFile, content: JSON.stringify(data) })
-        }
-
         if (showToast) {
           toast.success('分镜已保存')
         }
@@ -1077,7 +1070,7 @@ export function ShotEditor() {
         setSaving(false)
       }
     },
-    [currentFile, data, token, setCurrentFile]
+    [currentFile?.id, data]
   )
 
   // ── Shot CRUD ──

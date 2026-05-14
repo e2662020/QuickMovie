@@ -484,7 +484,7 @@ function PreviewCard({ data }: { data: PlanningData }) {
 // ═══════════════════════════════════════════════════════════════════
 
 export function PlanningEditor() {
-  const { currentFile, setCurrentFile, token } = useAppStore()
+  const { currentFile } = useAppStore()
 
   // ── Local State ──
   const [data, setData] = useState<PlanningData>(DEFAULT_PLANNING)
@@ -535,7 +535,6 @@ export function PlanningEditor() {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: JSON.stringify({
             fileId: currentFile.id,
@@ -552,13 +551,6 @@ export function PlanningEditor() {
         setDirty(false)
         setLastSavedAt(new Date())
 
-        // Update currentFile in store with new content
-        if (result.file) {
-          setCurrentFile({ ...currentFile, content: result.file.content })
-        } else {
-          setCurrentFile({ ...currentFile, content: JSON.stringify(data) })
-        }
-
         if (showToast) {
           toast.success('策划案已保存')
         }
@@ -568,7 +560,7 @@ export function PlanningEditor() {
         setSaving(false)
       }
     },
-    [currentFile, data, token, setCurrentFile]
+    [currentFile?.id, data]
   )
 
   // ── Field update helpers ──

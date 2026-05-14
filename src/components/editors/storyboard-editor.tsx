@@ -110,10 +110,9 @@ const WEATHER_OPTIONS = [
 // API Helpers
 // ═══════════════════════════════════════════════════════════════════
 
-function getHeaders(token: string | null) {
+function getHeaders(_token: string | null) {
   return {
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   }
 }
 

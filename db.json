@@ -58,10 +58,10 @@
       "parentId": null,
       "name": "未命名笔记",
       "type": "note",
-      "content": "{\"columns\":[{\"id\":\"a4820094-e9a4-49e9-a67c-beb6d2fe81c8\",\"title\":\"笔记 1\",\"content\":\"#\"}]}",
+      "content": "{\"columns\":[{\"id\":\"a4820094-e9a4-49e9-a67c-beb6d2fe81c8\",\"title\":\"笔记 1\",\"content\":\"#\\n\\n1111\"},{\"id\":\"a917fa54-9521-4d43-a6d2-d39e3673cb1c\",\"title\":\"笔记 2\",\"content\":\"\"}]}",
       "sortOrder": 2,
       "createdAt": "2026-05-13T14:22:17.643Z",
-      "updatedAt": "2026-05-14T22:59:33.579Z"
+      "updatedAt": "2026-05-14T23:05:26.884Z"
     },
     {
       "id": "file-mp63epwm0avdys",
@@ -75,7 +75,20 @@
       "updatedAt": "2026-05-14T23:01:31.174Z"
     }
   ],
-  "elements": [],
+  "elements": [
+    {
+      "id": "elem-mp63h5kek5fmmd",
+      "boardId": "board-mozv2l91erx88b",
+      "fileId": null,
+      "type": "mind_map",
+      "name": "新角色",
+      "content": "",
+      "color": "#3b82f6",
+      "position": "{\"x\":493.14138680010893,\"y\":336.9182105967055}",
+      "createdAt": "2026-05-14T23:03:24.782Z",
+      "updatedAt": "2026-05-14T23:03:24.782Z"
+    }
+  ],
   "resources": [],
   "sessions": [
     {
