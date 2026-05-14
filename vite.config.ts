@@ -33,6 +33,7 @@ function mockAPIPlugin(): Plugin {
   interface DBElement { id: string; boardId: string; fileId: string | null; type: string; name: string; content: string; color: string; position: string | null; createdAt: string; updatedAt: string }
   interface DBResource { id: string; boardId: string; fileId: string | null; name: string; type: string; url: string; originalUrl: string | null; size: number; mimeType: string; createdAt: string }
   interface DBSession { token: string; userId: string }
+  interface DBApiKey { id: string; key: string; name: string; userId: string; createdAt: string; lastUsedAt: string | null; expiresAt: string | null }
 
   const DB_FILE = path.resolve(__dirname, './db.json')
   const UPLOADS_DIR = path.resolve(__dirname, './uploads')
@@ -60,6 +61,7 @@ function mockAPIPlugin(): Plugin {
           elements: data.elements || [],
           resources: data.resources || [],
           sessions: data.sessions || [],
+          apiKeys: data.apiKeys || [],
         }
       }
     } catch (e) {
@@ -78,6 +80,7 @@ function mockAPIPlugin(): Plugin {
         elements: db.elements,
         resources: db.resources,
         sessions: db.sessions,
+        apiKeys: db.apiKeys,
       }
       fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2))
     } catch (e) {
@@ -106,6 +109,7 @@ function mockAPIPlugin(): Plugin {
     elements: loaded?.elements || [] as DBElement[],
     resources: loaded?.resources || [] as DBResource[],
     sessions: loaded?.sessions || [] as DBSession[],
+    apiKeys: loaded?.apiKeys || [] as DBApiKey[],
   }
 
   function isUploadUrl(url: string): boolean {
@@ -146,6 +150,14 @@ function mockAPIPlugin(): Plugin {
   }
 
   function auth(headers: Record<string, string>) {
+    const apiKey = headers['x-api-key'] || headers['authorization']?.replace(/^Bearer\s+/i, '')
+    if (apiKey && apiKey.startsWith('qm_')) {
+      const record = db.apiKeys.find(k => k.key === apiKey)
+      if (!record) return null
+      if (record.expiresAt && new Date(record.expiresAt) < new Date()) return null
+      record.lastUsedAt = new Date().toISOString()
+      return db.users.find(u => u.id === record.userId) || null
+    }
     const cookie = (headers.cookie || '')
     const m = cookie.match(/auth_token=([^;]+)/)
     if (!m) return null
@@ -209,6 +221,182 @@ function mockAPIPlugin(): Plugin {
         roles: acc.roles,
       }
       return j({ user })
+    }
+
+    // ── API Keys ──
+    if (path === '/api/apikeys' && method === 'GET') {
+      const u = auth(headers)
+      if (!u) return j({ error: '未登录' }, 401)
+      const keys = db.apiKeys.filter(k => k.userId === u.id).map(k => ({
+        id: k.id,
+        name: k.name,
+        key: k.key.substring(0, 8) + '...' + k.key.substring(k.key.length - 4),
+        createdAt: k.createdAt,
+        lastUsedAt: k.lastUsedAt,
+        expiresAt: k.expiresAt,
+      }))
+      return j({ apiKeys: keys })
+    }
+    if (path === '/api/apikeys' && method === 'POST') {
+      const u = auth(headers)
+      if (!u) return j({ error: '未登录' }, 401)
+      const keyName = body.name || 'API Key'
+      const rawKey = 'qm_' + uid() + uid() + uid()
+      const record: DBApiKey = {
+        id: 'key-' + uid(),
+        key: rawKey,
+        name: keyName,
+        userId: u.id,
+        createdAt: new Date().toISOString(),
+        lastUsedAt: null,
+        expiresAt: body.expiresAt || null,
+      }
+      db.apiKeys.push(record)
+      saveDB()
+      return j({ apiKey: { id: record.id, name: record.name, key: rawKey, createdAt: record.createdAt, expiresAt: record.expiresAt } })
+    }
+    if (path === '/api/apikeys' && method === 'DELETE') {
+      const u = auth(headers)
+      if (!u) return j({ error: '未登录' }, 401)
+      const keyId = search.keyId
+      const idx = db.apiKeys.findIndex(k => k.id === keyId && k.userId === u.id)
+      if (idx < 0) return j({ error: '不存在' }, 404)
+      db.apiKeys.splice(idx, 1)
+      saveDB()
+      return j({})
+    }
+
+    // ── External API (v1) ──
+    if (path.startsWith('/api/v1/')) {
+      const u = auth(headers)
+      if (!u) return j({ error: '未授权，请提供有效的 API Key', docs: '使用 X-API-Key 或 Authorization: Bearer qm_xxx 头部进行认证' }, 401)
+
+      const subPath = path.replace('/api/v1/', '')
+
+      if (subPath === 'me' && method === 'GET') {
+        return j({ user: { id: u.id, email: u.email, name: u.name, roles: u.roles } })
+      }
+      if (subPath === 'teams' && method === 'GET') {
+        const teams = db.teams.map(t => {
+          const members = db.teamMembers.get(t.id) || []
+          const member = members.find(m => m.userId === u.id)
+          const role = member?.role || 'viewer'
+          return { ...t, role, memberCount: members.length }
+        })
+        return j({ teams })
+      }
+      if (subPath === 'boards' && method === 'GET') {
+        const teamId = search.teamId
+        if (!teamId) return j({ error: '缺少 teamId 参数' }, 400)
+        return j({ boards: db.boards.filter(b => b.teamId === teamId) })
+      }
+      if (subPath === 'files' && method === 'GET') {
+        const boardId = search.boardId
+        if (!boardId) return j({ error: '缺少 boardId 参数' }, 400)
+        let files = db.boardFiles.filter(f => f.boardId === boardId)
+        if (search.parentId) {
+          files = files.filter(f => f.parentId === search.parentId)
+        }
+        files.sort((a, b) => a.sortOrder - b.sortOrder)
+        return j({ files })
+      }
+      if (subPath === 'files' && method === 'POST') {
+        const { boardId, parentId, name, type, content } = body
+        if (!boardId || !name) return j({ error: '缺少必要参数' }, 400)
+        const existing = db.boardFiles.filter(f => f.boardId === boardId)
+        const f: DBFile = { id: 'file-' + uid(), boardId, parentId: parentId || null, name, type: type || 'note', content: content || '', sortOrder: existing.length, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+        db.boardFiles.push(f)
+        saveDB()
+        return j({ file: f })
+      }
+      if (subPath === 'files' && method === 'PATCH') {
+        const f = db.boardFiles.find(x => x.id === body.fileId)
+        if (!f) return j({ error: '不存在' }, 404)
+        if (body.content !== undefined) f.content = body.content
+        if (body.name) f.name = body.name
+        if (body.sortOrder !== undefined) f.sortOrder = body.sortOrder
+        if (body.parentId !== undefined) f.parentId = body.parentId || null
+        f.updatedAt = new Date().toISOString()
+        saveDB()
+        return j({ file: f })
+      }
+      if (subPath === 'files' && method === 'DELETE') {
+        const fileId = search.fileId
+        if (!fileId) return j({ error: '缺少 fileId 参数' }, 400)
+        const idsToDelete: string[] = [fileId]
+        const queue = [fileId]
+        while (queue.length > 0) {
+          const pid = queue.shift()!
+          const children = db.boardFiles.filter(f => f.parentId === pid)
+          for (const child of children) {
+            idsToDelete.push(child.id)
+            queue.push(child.id)
+          }
+        }
+        for (const id of idsToDelete) {
+          const resources = db.resources.filter(r => r.fileId === id)
+          for (const res of resources) {
+            if (isUploadUrl(res.url)) deleteUpload(res.url)
+            if (res.originalUrl && isUploadUrl(res.originalUrl)) deleteUpload(res.originalUrl)
+          }
+          db.resources = db.resources.filter(r => r.fileId !== id)
+          db.elements = db.elements.filter(e => e.fileId !== id)
+        }
+        db.boardFiles = db.boardFiles.filter(f => !idsToDelete.includes(f.id))
+        saveDB()
+        return j({})
+      }
+      if (subPath === 'elements' && method === 'GET') {
+        const boardId = search.boardId
+        if (!boardId) return j({ error: '缺少 boardId 参数' }, 400)
+        return j({ elements: db.elements.filter(e => e.boardId === boardId) })
+      }
+      if (subPath === 'elements' && method === 'POST') {
+        const { boardId, type, name, content, color, position, fileId } = body
+        if (!boardId || !type || !name) return j({ error: '缺少必要参数' }, 400)
+        const el: DBElement = { id: 'elem-' + uid(), boardId, fileId: fileId || null, type, name, content: content || '', color: color || '#6b7280', position: position || null, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+        db.elements.push(el)
+        saveDB()
+        return j({ element: el })
+      }
+      if (subPath === 'elements' && method === 'PATCH') {
+        const el = db.elements.find(e => e.id === body.elementId)
+        if (!el) return j({ error: '不存在' }, 404)
+        if (body.name !== undefined) el.name = body.name
+        if (body.content !== undefined) el.content = body.content
+        if (body.color !== undefined) el.color = body.color
+        if (body.position !== undefined) el.position = body.position
+        if (body.fileId !== undefined) el.fileId = body.fileId
+        el.updatedAt = new Date().toISOString()
+        saveDB()
+        return j({ element: el })
+      }
+      if (subPath === 'elements' && method === 'DELETE') {
+        const elementId = search.elementId
+        if (!elementId) return j({ error: '缺少 elementId 参数' }, 400)
+        db.elements = db.elements.filter(e => e.id !== elementId)
+        saveDB()
+        return j({})
+      }
+      if (subPath === 'resources' && method === 'GET') {
+        const boardId = search.boardId
+        if (!boardId) return j({ error: '缺少 boardId 参数' }, 400)
+        return j({ resources: db.resources.filter(r => r.boardId === boardId) })
+      }
+      if (subPath === 'resources' && method === 'DELETE') {
+        const resourceId = search.resourceId
+        if (!resourceId) return j({ error: '缺少 resourceId 参数' }, 400)
+        const res = db.resources.find(r => r.id === resourceId)
+        if (res) {
+          if (isUploadUrl(res.url)) deleteUpload(res.url)
+          if (res.originalUrl && isUploadUrl(res.originalUrl)) deleteUpload(res.originalUrl)
+        }
+        db.resources = db.resources.filter(r => r.id !== resourceId)
+        saveDB()
+        return j({})
+      }
+
+      return j({ error: '未知的 API 端点', availableEndpoints: ['/me', '/teams', '/boards', '/files', '/elements', '/resources'] }, 404)
     }
 
     // ── Teams ──
@@ -357,12 +545,34 @@ function mockAPIPlugin(): Plugin {
       if (!f) return j({ error: '不存在' }, 404)
       if (body.content !== undefined) f.content = body.content
       if (body.name) f.name = body.name
+      if (body.sortOrder !== undefined) f.sortOrder = body.sortOrder
+      if (body.parentId !== undefined) f.parentId = body.parentId || null
       f.updatedAt = new Date().toISOString()
       saveDB()
       return j({ file: f })
     }
     if (path === '/api/boards/files' && method === 'DELETE') {
-      db.boardFiles = db.boardFiles.filter(f => f.id !== search.fileId)
+      const fileId = search.fileId
+      const idsToDelete: string[] = [fileId]
+      const queue = [fileId]
+      while (queue.length > 0) {
+        const pid = queue.shift()!
+        const children = db.boardFiles.filter(f => f.parentId === pid)
+        for (const child of children) {
+          idsToDelete.push(child.id)
+          queue.push(child.id)
+        }
+      }
+      for (const id of idsToDelete) {
+        const resources = db.resources.filter(r => r.fileId === id)
+        for (const res of resources) {
+          if (isUploadUrl(res.url)) deleteUpload(res.url)
+          if (res.originalUrl && isUploadUrl(res.originalUrl)) deleteUpload(res.originalUrl)
+        }
+        db.resources = db.resources.filter(r => r.fileId !== id)
+        db.elements = db.elements.filter(e => e.fileId !== id)
+      }
+      db.boardFiles = db.boardFiles.filter(f => !idsToDelete.includes(f.id))
       saveDB()
       return j({})
     }

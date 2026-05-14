@@ -72,6 +72,7 @@ import {
   ClipboardList,
   Sun,
   Moon,
+  Key,
 } from 'lucide-react'
 import { IconPicker, IconDisplay } from '@/components/icon-picker'
 
@@ -105,6 +106,15 @@ interface TeamMember {
   avatar?: string
   role: string
   joinedAt: string
+}
+
+interface ApiKeyInfo {
+  id: string
+  name: string
+  key: string
+  createdAt: string
+  lastUsedAt: string | null
+  expiresAt: string | null
 }
 
 // ─── Component ───────────────────────────────────────────────────
@@ -145,6 +155,7 @@ export function DashboardView() {
   const [deleteBoardOpen, setDeleteBoardOpen] = useState(false)
   const [manageMembersOpen, setManageMembersOpen] = useState(false)
   const [inviteLinkOpen, setInviteLinkOpen] = useState(false)
+  const [apiKeysOpen, setApiKeysOpen] = useState(false)
 
   // Form values
   const [newTeamName, setNewTeamName] = useState('')
@@ -159,6 +170,12 @@ export function DashboardView() {
   // Members
   const [members, setMembers] = useState<TeamMember[]>([])
   const [membersLoading, setMembersLoading] = useState(false)
+
+  // API Keys
+  const [apiKeys, setApiKeys] = useState<ApiKeyInfo[]>([])
+  const [newApiKeyName, setNewApiKeyName] = useState('')
+  const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null)
+  const [apiKeyCopied, setApiKeyCopied] = useState(false)
 
   // Invite
   const [copied, setCopied] = useState(false)
@@ -558,6 +575,70 @@ export function DashboardView() {
     toast.success('已退出登录')
   }
 
+  const loadApiKeys = async () => {
+    try {
+      const res = await fetch('/api/apikeys')
+      if (res.ok) {
+        const data = await res.json()
+        setApiKeys(data.apiKeys || [])
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  const handleCreateApiKey = async () => {
+    if (!newApiKeyName.trim()) {
+      toast.error('请输入 API Key 名称')
+      return
+    }
+    try {
+      const res = await fetch('/api/apikeys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newApiKeyName.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || '创建失败')
+        return
+      }
+      setNewApiKeyName('')
+      setNewlyCreatedKey(data.apiKey.key)
+      setApiKeyCopied(false)
+      await loadApiKeys()
+      toast.success('API Key 已创建')
+    } catch {
+      toast.error('网络错误')
+    }
+  }
+
+  const handleDeleteApiKey = async (keyId: string) => {
+    try {
+      const res = await fetch(`/api/apikeys?keyId=${encodeURIComponent(keyId)}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) {
+        toast.error('删除失败')
+        return
+      }
+      await loadApiKeys()
+      toast.success('API Key 已删除')
+    } catch {
+      toast.error('网络错误')
+    }
+  }
+
+  const handleCopyApiKey = (key: string) => {
+    navigator.clipboard.writeText(key).then(() => {
+      setApiKeyCopied(true)
+      toast.success('已复制到剪贴板')
+      setTimeout(() => setApiKeyCopied(false), 2000)
+    }).catch(() => {
+      toast.error('复制失败')
+    })
+  }
+
   // ── Open rename dialogs ──
   const openRenameTeam = () => {
     if (!currentTeam) return
@@ -679,6 +760,25 @@ export function DashboardView() {
             <p className="truncate text-sm font-medium">{user?.name}</p>
             <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
           </div>
+          <TooltipProvider delayDuration={400}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground"
+                  onClick={() => {
+                    setApiKeysOpen(true)
+                    setNewlyCreatedKey(null)
+                    loadApiKeys()
+                  }}
+                >
+                  <Key className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>API Key 管理</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <Button
             variant="ghost"
             size="icon"
@@ -1395,6 +1495,104 @@ export function DashboardView() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setInviteLinkOpen(false)}>
+              关闭
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={apiKeysOpen} onOpenChange={setApiKeysOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>API Key 管理</DialogTitle>
+            <DialogDescription>
+              创建 API Key 以允许其他客户端访问你的数据。请妥善保管，不要泄露。
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {newlyCreatedKey && (
+              <div className="rounded-md border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/50 p-3 space-y-2">
+                <p className="text-xs font-medium text-green-700 dark:text-green-400">
+                  新 API Key 已创建，请立即复制！关闭后将无法再次查看完整密钥。
+                </p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 rounded bg-white dark:bg-black/30 px-2 py-1.5 text-xs font-mono break-all">
+                    {newlyCreatedKey}
+                  </code>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => handleCopyApiKey(newlyCreatedKey)}
+                  >
+                    {apiKeyCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="API Key 名称"
+                value={newApiKeyName}
+                onChange={(e) => setNewApiKeyName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCreateApiKey()
+                }}
+                className="text-sm"
+              />
+              <Button size="sm" onClick={handleCreateApiKey} disabled={!newApiKeyName.trim()}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+              {apiKeys.length === 0 && (
+                <p className="text-center text-xs text-muted-foreground py-4">
+                  还没有 API Key
+                </p>
+              )}
+              {apiKeys.map((ak) => (
+                <div
+                  key={ak.id}
+                  className="flex items-center gap-3 rounded-md border px-3 py-2"
+                >
+                  <Key className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{ak.name}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{ak.key}</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                      创建于 {new Date(ak.createdAt).toLocaleDateString('zh-CN')}
+                      {ak.lastUsedAt && ` · 最后使用 ${new Date(ak.lastUsedAt).toLocaleDateString('zh-CN')}`}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
+                    onClick={() => handleDeleteApiKey(ak.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-md bg-muted/50 p-3 space-y-1.5">
+              <p className="text-xs font-medium">使用方式</p>
+              <p className="text-[11px] text-muted-foreground">
+                在请求头中添加 <code className="rounded bg-muted px-1 py-0.5 text-[10px]">X-API-Key: qm_xxx</code> 或
+                <code className="rounded bg-muted px-1 py-0.5 text-[10px] ml-1">Authorization: Bearer qm_xxx</code>
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                外部 API 端点：<code className="rounded bg-muted px-1 py-0.5 text-[10px]">/api/v1/{'{me,teams,boards,files,elements,resources}'}</code>
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setApiKeysOpen(false)}>
               关闭
             </Button>
           </DialogFooter>
