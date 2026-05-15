@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getDb, uid } from '../db.js';
+import { sendTestEmail } from '../services/email.js';
 const router = Router();
 router.get('/setup/status', (_req, res) => {
     const db = getDb();
@@ -59,5 +60,19 @@ router.post('/setup/reset', (req, res) => {
     db.prepare('DELETE FROM users').run();
     db.prepare('DELETE FROM sessions').run();
     res.json({ success: true });
+});
+router.post('/setup/test-email', async (req, res) => {
+    const { to } = req.body;
+    if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+        res.status(400).json({ error: '无效的邮箱地址' });
+        return;
+    }
+    const result = await sendTestEmail(to);
+    if (result.success) {
+        res.json({ success: true });
+    }
+    else {
+        res.status(500).json({ success: false, error: result.error });
+    }
 });
 export default router;

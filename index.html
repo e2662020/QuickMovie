@@ -10,6 +10,25 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap" rel="stylesheet" />
     <title>快分镜 - 一个影视创作协作平台</title>
+    <script>
+      (function() {
+        fetch('/api/site-config')
+          .then(function(res) {
+            if (!res.ok) return
+            return res.json()
+          })
+          .then(function(data) {
+            if (data && data.site_name) {
+              document.title = data.site_name + ' - ' + (data.site_tagline || '影视创作协作平台')
+            }
+            if (data && data.icon) {
+              var link = document.querySelector('link[rel="icon"]')
+              if (link) link.href = data.icon
+            }
+          })
+          .catch(function() {})
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

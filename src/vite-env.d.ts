@@ -2,6 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_APP_MODE: 'development' | 'production' | 'tauri'
+  readonly VITE_BUILD_TARGET: 'dev' | 'server' | 'tauri'
   readonly VITE_API_BASE_URL: string
   readonly VITE_DEFAULT_SERVER: string
 }

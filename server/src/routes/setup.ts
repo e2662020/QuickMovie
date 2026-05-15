@@ -69,4 +69,18 @@ router.post('/setup/reset', (req, res) => {
   res.json({ success: true })
 })
 
+router.post('/setup/test-email', async (req, res) => {
+  const { to } = req.body
+  if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    res.status(400).json({ error: '无效的邮箱地址' })
+    return
+  }
+  const result = await sendTestEmail(to)
+  if (result.success) {
+    res.json({ success: true })
+  } else {
+    res.status(500).json({ success: false, error: result.error })
+  }
+})
+
 export default router

@@ -13,9 +13,11 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Check, ChevronLeft, ChevronRight, Film, Globe, User, Palette, Mail, FileText, ShieldOff, Upload, X, Eye, EyeOff, Lock } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
+import { Loader2, Check, ChevronLeft, ChevronRight, Film, Globe, User, Palette, Mail, FileText, ShieldOff, Upload, X, Eye, EyeOff, Lock, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAppStore } from '@/lib/store'
+import { IS_SERVER_VERSION } from '@/lib/env'
 
 interface SetupStep {
   id: string
@@ -24,13 +26,17 @@ interface SetupStep {
   icon: React.ElementType
 }
 
-const STEPS: SetupStep[] = [
+const ALL_STEPS: SetupStep[] = [
   { id: 'domain', title: '域名配置', description: '设置服务器域名前缀', icon: Globe },
   { id: 'admin', title: '管理员账户', description: '创建管理员账号', icon: User },
   { id: 'brand', title: '网站品牌', description: '定制网站名称和图标', icon: Palette },
   { id: 'email', title: '邮件配置', description: '设置邮件发送服务', icon: Mail },
   { id: 'privacy', title: '隐私政策', description: '配置隐私政策', icon: FileText },
 ]
+
+const STEPS: SetupStep[] = IS_SERVER_VERSION
+  ? ALL_STEPS
+  : ALL_STEPS.filter(s => s.id !== 'email')
 
 interface StepData {
   domain: { domain_prefix: string }
@@ -87,6 +93,7 @@ export function SetupWizard() {
   const [resetLoading, setResetLoading] = useState(false)
   const [resetError, setResetError] = useState<string | null>(null)
   const [showReset, setShowReset] = useState(false)
+  const [enableQuantumEncryption, setEnableQuantumEncryption] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Check setup status on mount
@@ -833,6 +840,25 @@ export function SetupWizard() {
                     onChange={(e) => setStepData(prev => ({ ...prev, privacy: { content: e.target.value } }))}
                   />
                 </div>
+
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Shield className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">启用后量子加密 (Kyber)</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        使用 Kyber 后量子密钥封装机制增强通信安全性
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={enableQuantumEncryption}
+                    onCheckedChange={setEnableQuantumEncryption}
+                  />
+                </div>
+
                 <p className="text-xs text-muted-foreground">
                   可稍后在管理后台修改
                 </p>
