@@ -239,4 +239,26 @@ export function InviteView() {
                     需要先登录或注册才能加入这个团队
                   </p>
                   <Button
-                    className="w-full h-
+                    className="w-full h-12 text-base"
+                    onClick={handleLoginRedirect}
+                  >
+                    <LogIn className="h-4 w-4 mr-2" />
+                    登录并加入
+                  </Button>
+                  <Button
+                    className="w-full h-12 text-base"
+                    variant="outline"
+                    onClick={handleRegisterRedirect}
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    注册账号
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </div>
+  )
+}
