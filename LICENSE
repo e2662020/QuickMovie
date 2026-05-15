@@ -175,16 +175,55 @@
 
    END OF TERMS AND CONDITIONS
 
-   Copyright 2025 QuickMovie Contributors
+   ============================================================================
 
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
+   QUICKMOVIE DUAL LICENSING TERMS
 
-       http://www.apache.org/licenses/LICENSE-2.0
+   ============================================================================
 
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
+   OPEN SOURCE VERSION
+   -------------------
+   The source code of QuickMovie is made available under the terms of the
+   Apache License, Version 2.0, as set forth above.
+
+   DISTRIBUTION VERSION (PROPRIETARY)
+   ----------------------------------
+   Any Distribution Version of QuickMovie (including but not limited to
+   binary distributions, pre-built releases, commercial deployments, or
+   any form of software provided as a finished product) constitutes
+   proprietary software and is subject to the following additional terms:
+
+   1. PROHIBITION ON REVERSE ENGINEERING
+      You shall not decompile, disassemble, reverse engineer, or in any
+      manner attempt to derive the source code or internal workings of
+      any Distribution Version of QuickMovie.
+
+   2. PROHIBITION ON UNAUTHORIZED MODIFICATIONS
+      You shall not modify, alter, patch, or create derivative works
+      based upon any Distribution Version of QuickMovie without prior
+      written authorization from RATE TEAM.
+
+   3. PROHIBITION ON REDISTRIBUTION
+      You shall not redistribute, resell, lease, or otherwise transfer
+      any Distribution Version of QuickMovie to any third party without
+      prior written authorization from RATE TEAM.
+
+   4. OWNERSHIP
+      All intellectual property rights in and to QuickMovie, including
+      but not limited to the Distribution Version, are and shall remain
+      the exclusive property of RATE TEAM.
+
+   5. COMMERCIAL LICENSE
+      For inquiries regarding commercial licensing, customization, or
+      enterprise deployment of QuickMovie, please contact RATE TEAM.
+
+   ============================================================================
+
+   Copyright 2025 RATE TEAM. All Rights Reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License") for the
+   Open Source Version only. The Distribution Version is proprietary and
+   subject to the additional terms set forth above.
+
+   For the full license text of Apache License 2.0, visit:
+   http://www.apache.org/licenses/LICENSE-2.0
