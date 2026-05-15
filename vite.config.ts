@@ -4,6 +4,11 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 import fs from 'fs'
 
+// Build modes:
+// - development: Vite dev server + mock API plugin, port 3000
+// - production: Static build for deployment, no mock API
+// - tauri: Frontend build for Tauri desktop app, no mock API
+
 function uid(): string {
   return Date.now().toString(36) + Math.random().toString(36).substring(2, 8)
 }
@@ -759,7 +764,11 @@ function mockAPIPlugin(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), mockAPIPlugin()],
+  plugins: [
+    tailwindcss(),
+    ...(process.env.NODE_ENV === 'development' ? [mockAPIPlugin()] : []),
+    react(),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -768,6 +777,16 @@ export default defineConfig({
   server: {
     port: 3000,
     historyApiFallback: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+      '/uploads': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     outDir: 'dist',

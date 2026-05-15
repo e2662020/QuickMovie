@@ -6,6 +6,8 @@ import { AuthView } from '@/components/views/auth'
 import { DashboardView } from '@/components/views/dashboard'
 import { BoardWorkspace } from '@/components/views/board-workspace'
 import { InviteView } from '@/components/views/invite'
+import { SetupWizard } from '@/components/views/setup-wizard'
+import { ServerSelect } from '@/components/views/server-select'
 import { Toaster } from '@/components/ui/toaster'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Loader2 } from 'lucide-react'
@@ -59,6 +61,7 @@ const pathToView: Record<string, AppView> = {
   '/dashboard': 'dashboard',
   '/board': 'board',
   '/invite': 'invite',
+  '/setup': 'setup',
 }
 
 // Resolve URL path to view and optional boardId/fileId
@@ -79,8 +82,9 @@ const viewToPath: Record<AppView, string> = {
   login: '/login',
   register: '/register',
   dashboard: '/dashboard',
-  board: '/dashboard', // fallback, actual URL generated dynamically
+  board: '/dashboard',
   invite: '/invite',
+  setup: '/setup',
 }
 
 function MainContent() {
@@ -105,6 +109,26 @@ function MainContent() {
 
     // Check auth first, then set view based on result
     async function init() {
+      // Check setup status first
+      try {
+        const setupRes = await fetch('/api/setup/status')
+        if (setupRes.ok) {
+          const setupData = await setupRes.json()
+          if (!setupData.installed) {
+            setView('setup')
+            setLoading(false)
+            return
+          }
+          if (path === '/setup') {
+            setView('landing')
+            setLoading(false)
+            return
+          }
+        }
+      } catch {
+        // ignore setup check errors
+      }
+
       try {
         const res = await fetch('/api/auth/me')
         if (res.ok) {
@@ -196,6 +220,8 @@ function MainContent() {
         return <BoardWorkspace />
       case 'invite':
         return <InviteView />
+      case 'setup':
+        return <SetupWizard />
       default:
         return <LandingView />
     }
@@ -218,9 +244,22 @@ function AppRoutes() {
     { path: '/board/:boardId', element: <MainContent /> },
     { path: '/board', element: <MainContent /> },
     { path: '/invite', element: <MainContent /> },
+    { path: '/setup', element: <MainContent /> },
     { path: '*', element: <MainContent /> },
   ])
   return routes
+}
+
+function FirstLaunchGuard({ children }: { children: React.ReactNode }) {
+  const serverConfig = useAppStore((s) => s.serverConfig)
+  const isFirstLaunch = typeof window !== 'undefined'
+    && !serverConfig
+    && !localStorage.getItem('quickmovie-app-mode')
+
+  if (isFirstLaunch) {
+    return <ServerSelect />
+  }
+  return <>{children}</>
 }
 
 export default function App() {
@@ -228,7 +267,9 @@ export default function App() {
     <ErrorBoundary>
       <ThemeProvider>
         <TooltipProvider delayDuration={300}>
-          <AppRoutes />
+          <FirstLaunchGuard>
+            <AppRoutes />
+          </FirstLaunchGuard>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

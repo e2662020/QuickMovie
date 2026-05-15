@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.env.development
+.env.local
+TestAccount.json
+db.json
+uploads/*
+!uploads/.gitkeep
+server/data/*
+!server/data/.gitkeep
+*.md

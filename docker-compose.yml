@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "80:80"
+      - "3001:3001"
+    volumes:
+      - quickmovie-data:/app/server/data
+      - quickmovie-uploads:/app/uploads
+    environment:
+      - NODE_ENV=production
+      - BUILD_TARGET=server
+    restart: unless-stopped
+
+volumes:
+  quickmovie-data:
+  quickmovie-uploads:

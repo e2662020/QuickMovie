@@ -66,6 +66,24 @@ export interface Resource {
   createdAt: string
 }
 
+export type AppMode = 'offline' | 'remote'
+
+export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
+
+export interface ServerConfig {
+  serverUrl: string
+  serverName: string
+  authToken: string | null
+  connectionStatus: ConnectionStatus
+}
+
+export interface PendingSyncAction {
+  id: string
+  type: string
+  payload: unknown
+  timestamp: number
+}
+
 export type AppView =
   | 'landing'
   | 'login'
@@ -73,6 +91,7 @@ export type AppView =
   | 'dashboard'
   | 'board'
   | 'invite'
+  | 'setup'
 
 interface AppState {
   user: User | null
@@ -101,6 +120,11 @@ interface AppState {
   deletedFiles: BoardFile[]
   deletedFilesTimeout: ReturnType<typeof setTimeout> | null
 
+  appMode: AppMode
+  serverConfig: ServerConfig | null
+  pendingSyncActions: PendingSyncAction[]
+  lastSyncTimestamp: number | null
+
   setUser: (user: User | null) => void
   setToken: (token: string | null) => void
   setView: (view: AppView) => void
@@ -122,7 +146,33 @@ interface AppState {
   addDeletedFile: (file: BoardFile) => void
   undoDeleteFile: () => BoardFile | null
   clearDeletedFiles: () => void
+
+  setAppMode: (mode: AppMode) => void
+  setServerConfig: (config: ServerConfig | null) => void
+  connectServer: (url: string, name: string) => Promise<void>
+  disconnectServer: () => void
+  addPendingSyncAction: (action: Omit<PendingSyncAction, 'id' | 'timestamp'>) => void
+  clearPendingSyncActions: () => void
+  syncPendingActions: () => Promise<void>
+
   reset: () => void
+}
+
+const STORAGE_KEY = 'quickmovie-offline-data'
+
+const loadOfflineData = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return null
+}
+
+const saveOfflineData = (data: Partial<AppState>) => {
+  try {
+    const existing = loadOfflineData() || {}
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...existing, ...data }))
+  } catch {}
 }
 
 export const useAppStore = create<AppState>()((set, get) => ({
@@ -151,6 +201,11 @@ export const useAppStore = create<AppState>()((set, get) => ({
   darkMode: typeof window !== 'undefined' ? (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) : false,
   deletedFiles: [],
   deletedFilesTimeout: null,
+
+  appMode: 'offline',
+  serverConfig: null,
+  pendingSyncActions: [],
+  lastSyncTimestamp: null,
 
   setUser: (user) => set({ user }),
   setToken: (token) => set({ token }),
@@ -218,6 +273,97 @@ export const useAppStore = create<AppState>()((set, get) => ({
     }
     set({ deletedFiles: [], deletedFilesTimeout: null })
   },
+
+  setAppMode: (mode) => {
+    try { localStorage.setItem('quickmovie-app-mode', mode) } catch {}
+    set({ appMode: mode })
+  },
+
+  setServerConfig: (config) => set({ serverConfig: config }),
+
+  connectServer: async (url, name) => {
+    set({
+      serverConfig: {
+        serverUrl: url,
+        serverName: name,
+        authToken: null,
+        connectionStatus: 'connecting',
+      },
+    })
+
+    try {
+      const response = await fetch(`${url}/api/health`)
+      if (!response.ok) throw new Error('Server unreachable')
+
+      set({
+        appMode: 'remote',
+        serverConfig: {
+          serverUrl: url,
+          serverName: name,
+          authToken: null,
+          connectionStatus: 'connected',
+        },
+      })
+      try { localStorage.setItem('quickmovie-app-mode', 'remote') } catch {}
+    } catch {
+      set({
+        serverConfig: {
+          serverUrl: url,
+          serverName: name,
+          authToken: null,
+          connectionStatus: 'error',
+        },
+      })
+    }
+  },
+
+  disconnectServer: () => {
+    set({
+      appMode: 'offline',
+      serverConfig: null,
+    })
+    try { localStorage.setItem('quickmovie-app-mode', 'offline') } catch {}
+  },
+
+  addPendingSyncAction: (action) => {
+    const pendingAction: PendingSyncAction = {
+      id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      type: action.type,
+      payload: action.payload,
+      timestamp: Date.now(),
+    }
+    const updated = [...get().pendingSyncActions, pendingAction]
+    set({ pendingSyncActions: updated })
+    saveOfflineData({ pendingSyncActions: updated } as Partial<AppState>)
+  },
+
+  clearPendingSyncActions: () => {
+    set({ pendingSyncActions: [] })
+    saveOfflineData({ pendingSyncActions: [] } as Partial<AppState>)
+  },
+
+  syncPendingActions: async () => {
+    const { serverConfig, pendingSyncActions } = get()
+    if (!serverConfig || serverConfig.connectionStatus !== 'connected') return
+    if (pendingSyncActions.length === 0) return
+
+    for (const action of pendingSyncActions) {
+      try {
+        await fetch(`${serverConfig.serverUrl}/api/sync`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(action),
+        })
+      } catch {}
+    }
+
+    set({
+      pendingSyncActions: [],
+      lastSyncTimestamp: Date.now(),
+    })
+    saveOfflineData({ lastSyncTimestamp: Date.now() } as Partial<AppState>)
+  },
+
   reset: () => set({
     user: null,
     token: null,
@@ -232,5 +378,9 @@ export const useAppStore = create<AppState>()((set, get) => ({
     resources: [],
     deletedFiles: [],
     deletedFilesTimeout: null,
+    appMode: 'offline',
+    serverConfig: null,
+    pendingSyncActions: [],
+    lastSyncTimestamp: null,
   }),
 }))

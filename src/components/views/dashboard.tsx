@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAppStore, type Team, type DirectorBoard } from '@/lib/store'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useAppMode } from '@/hooks/use-app-mode'
+import { OfflineIndicator } from '@/components/offline-indicator'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
@@ -72,6 +74,7 @@ import {
   ClipboardList,
   Sun,
   Moon,
+  WifiOff,
 } from 'lucide-react'
 import { IconPicker, IconDisplay } from '@/components/icon-picker'
 
@@ -130,6 +133,7 @@ export function DashboardView() {
   } = useAppStore()
 
   const isMobile = useIsMobile()
+  const { isOffline } = useAppMode()
 
   // ── Local State ──
   const [loading, setLoading] = useState(true)
@@ -651,19 +655,38 @@ export function DashboardView() {
       <div className="mt-auto">
         {currentTeam && (
           <div className="px-3 pb-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start gap-2 text-muted-foreground"
-              onClick={handleCopyCode}
-            >
-              {copied ? (
-                <Check className="h-4 w-4 text-green-500" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-              {copied ? '已复制' : '邀请链接'}
-            </Button>
+            {isOffline ? (
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start gap-2 text-muted-foreground/50 cursor-not-allowed"
+                      disabled
+                    >
+                      <WifiOff className="h-4 w-4" />
+                      协作功能不可用
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>协作功能需要连接到服务器</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start gap-2 text-muted-foreground"
+                onClick={handleCopyCode}
+              >
+                {copied ? (
+                  <Check className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                {copied ? '已复制' : '邀请链接'}
+              </Button>
+            )}
           </div>
         )}
 
@@ -730,6 +753,9 @@ export function DashboardView() {
         )}
 
         <div className="ml-auto flex items-center gap-2">
+          {/* Offline indicator */}
+          <OfflineIndicator />
+
           {/* Dark mode toggle */}
           <TooltipProvider delayDuration={300}>
             <Tooltip>
@@ -755,61 +781,97 @@ export function DashboardView() {
 
           {/* Manage team dropdown */}
           {currentTeam && canManageTeam && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Users className="h-4 w-4" />
-                  <span className="hidden sm:inline">团队成员</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={openRenameTeam} className="gap-2">
-                  <Edit className="h-4 w-4" />
-                  重命名团队
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={openManageMembers} className="gap-2">
-                  <Users className="h-4 w-4" />
-                  管理成员
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setInviteLinkOpen(true)} className="gap-2">
-                  <Copy className="h-4 w-4" />
-                  邀请链接
-                </DropdownMenuItem>
-                {isTeamOwner && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => setDeleteTeamOpen(true)}
-                      className="gap-2 text-destructive focus:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      删除团队
-                    </DropdownMenuItem>
-                  </>
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={`gap-2 ${isOffline ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          disabled={isOffline}
+                        >
+                          <Users className="h-4 w-4" />
+                          <span className="hidden sm:inline">团队成员</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      {!isOffline && (
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={openRenameTeam} className="gap-2">
+                            <Edit className="h-4 w-4" />
+                            重命名团队
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={openManageMembers} className="gap-2">
+                            <Users className="h-4 w-4" />
+                            管理成员
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setInviteLinkOpen(true)} className="gap-2">
+                            <Copy className="h-4 w-4" />
+                            邀请链接
+                          </DropdownMenuItem>
+                          {isTeamOwner && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => setDeleteTeamOpen(true)}
+                                className="gap-2 text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                                删除团队
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      )}
+                    </DropdownMenu>
+                  </span>
+                </TooltipTrigger>
+                {isOffline && (
+                  <TooltipContent>协作功能需要连接到服务器</TooltipContent>
                 )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </Tooltip>
+            </TooltipProvider>
           )}
 
           {/* Non-owners can still see members */}
           {currentTeam && !canManageTeam && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Users className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={openManageMembers} className="gap-2">
-                  <Users className="h-4 w-4" />
-                  查看成员
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setInviteLinkOpen(true)} className="gap-2">
-                  <Copy className="h-4 w-4" />
-                  邀请链接
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={`gap-2 ${isOffline ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          disabled={isOffline}
+                        >
+                          <Users className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      {!isOffline && (
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={openManageMembers} className="gap-2">
+                            <Users className="h-4 w-4" />
+                            查看成员
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setInviteLinkOpen(true)} className="gap-2">
+                            <Copy className="h-4 w-4" />
+                            邀请链接
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      )}
+                    </DropdownMenu>
+                  </span>
+                </TooltipTrigger>
+                {isOffline && (
+                  <TooltipContent>协作功能需要连接到服务器</TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
           )}
 
           {/* Create Board */}
