@@ -38,7 +38,7 @@ const features = [
   {
     icon: ClipboardList,
     title: '策划管理',
-    desc: 'AI辅助策划案生成，从创意灵感到完整策划方案，让前期筹备更高效。',
+    desc: '智能策划案生成，从创意灵感到完整策划方案，让前期筹备更高效。',
   },
   {
     icon: LayoutDashboard,
@@ -48,7 +48,7 @@ const features = [
   {
     icon: FileText,
     title: '剧本编辑',
-    desc: '智能剧本编辑器，支持行业标准格式，AI辅助对白优化与场景描述。',
+    desc: '专业剧本编辑器，支持行业标准格式，对白优化与场景描述。',
   },
   {
     icon: Film,
@@ -62,8 +62,8 @@ const features = [
   },
   {
     icon: Sparkles,
-    title: 'AI增强',
-    desc: 'AI驱动创作流程，智能场景分析、构图建议与风格迁移，释放创作潜能。',
+    title: '智能增强',
+    desc: '智能创作流程，场景分析、构图建议与风格迁移，释放创作潜能。',
   },
 ]
 
@@ -71,7 +71,7 @@ const workflowSteps = [
   {
     step: '01',
     title: '策划',
-    desc: 'AI辅助完成创意构思与项目策划，快速生成专业策划文档。',
+    desc: '智能完成创意构思与项目策划，快速生成专业策划文档。',
   },
   {
     step: '02',
@@ -111,7 +111,7 @@ export function LandingView() {
           <motion.div variants={fadeUp} custom={0} className="mb-6">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-700/60 bg-slate-800/60 px-4 py-1.5 text-xs font-medium tracking-wide text-slate-300 backdrop-blur-sm">
               <Sparkles className="size-3.5 text-amber-400" />
-              AI 驱动 · 专业工具 · 团队协作
+              专业工具 · 团队协作
             </span>
           </motion.div>
 
@@ -132,7 +132,7 @@ export function LandingView() {
             custom={2}
             className="mt-5 text-xl sm:text-2xl md:text-3xl font-semibold text-slate-200"
           >
-            AI驱动的影视创作协作平台
+            专业影视创作协作平台
           </motion.p>
 
           {/* Tagline */}
@@ -141,7 +141,7 @@ export function LandingView() {
             custom={3}
             className="mt-4 max-w-2xl mx-auto text-base sm:text-lg leading-relaxed text-slate-400"
           >
-            从创意策划到分镜设计，为专业影视团队提供一站式智能创作工具。
+            从创意策划到分镜设计，为专业影视团队提供一站式创作工具。
             <br className="hidden sm:block" />
             让每一个故事，都能以最专业的方式被呈现。
           </motion.p>
@@ -206,7 +206,7 @@ export function LandingView() {
               custom={2}
               className="mt-3 max-w-xl mx-auto text-slate-400"
             >
-              覆盖从前期策划到制作准备的完整创作流程，AI 深度赋能每一个环节。
+              覆盖从前期策划到制作准备的完整创作流程，深度赋能每一个环节。
             </motion.p>
           </motion.div>
 
@@ -352,7 +352,7 @@ export function LandingView() {
               准备好开始创作了吗？
             </h2>
             <p className="mt-3 text-slate-400">
-              立即加入快分镜，体验 AI 驱动的影视创作新方式。
+              立即加入快分镜，体验全新的影视创作方式。
             </p>
             <Button
               size="lg"
@@ -369,8 +369,8 @@ export function LandingView() {
       {/* ── Footer ───────────────────────────────────────────────── */}
       <footer className="border-t border-slate-800/60 px-6 py-8">
         <div className="mx-auto max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-500">
-          <p>&copy; 2024 快分镜 - AI驱动的影视创作平台</p>
-          <p className="text-slate-600">Crafted for filmmakers, powered by AI.</p>
+          <p>&copy; 2024 快分镜 - 专业影视创作平台</p>
+          <p className="text-slate-600">Crafted for filmmakers.</p>
         </div>
       </footer>
     </div>

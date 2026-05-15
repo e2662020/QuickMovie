@@ -31,6 +31,7 @@ export function AuthView() {
 
   const isLogin = currentView === 'login'
   const [animationKey, setAnimationKey] = useState(0)
+  const [showInviteBanner, setShowInviteBanner] = useState(false)
 
   // Form state
   const [loginEmail, setLoginEmail] = useState('')
@@ -233,7 +234,7 @@ export function AuthView() {
 
           <CardContent>
             {/* Invite code banner */}
-            {inviteCode && (
+            {showInviteBanner && (
               <Alert className="mb-4 border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 animate-fade-in-up">
                 <AlertDescription>
                   🎉 你通过邀请链接访问，注册后将自动加入团队
@@ -428,7 +429,7 @@ export function AuthView() {
 
         {/* Copyright */}
         <p className="mt-6 text-center text-xs text-muted-foreground animate-fade-in" style={{ animationDelay: '0.3s', animationFillMode: 'both' }}>
-          © {new Date().getFullYear()} 快分镜 · AI 驱动的协作分镜工具
+          © {new Date().getFullYear()} 快分镜 · 专业协作分镜工具
         </p>
       </div>
     </div>

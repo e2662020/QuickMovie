@@ -33,7 +33,6 @@ function mockAPIPlugin(): Plugin {
   interface DBElement { id: string; boardId: string; fileId: string | null; type: string; name: string; content: string; color: string; position: string | null; createdAt: string; updatedAt: string }
   interface DBResource { id: string; boardId: string; fileId: string | null; name: string; type: string; url: string; originalUrl: string | null; size: number; mimeType: string; createdAt: string }
   interface DBSession { token: string; userId: string }
-  interface DBApiKey { id: string; key: string; name: string; userId: string; createdAt: string; lastUsedAt: string | null; expiresAt: string | null }
 
   const DB_FILE = path.resolve(__dirname, './db.json')
   const UPLOADS_DIR = path.resolve(__dirname, './uploads')
@@ -61,7 +60,6 @@ function mockAPIPlugin(): Plugin {
           elements: data.elements || [],
           resources: data.resources || [],
           sessions: data.sessions || [],
-          apiKeys: data.apiKeys || [],
         }
       }
     } catch (e) {
@@ -80,7 +78,6 @@ function mockAPIPlugin(): Plugin {
         elements: db.elements,
         resources: db.resources,
         sessions: db.sessions,
-        apiKeys: db.apiKeys,
       }
       fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2))
     } catch (e) {
@@ -109,7 +106,6 @@ function mockAPIPlugin(): Plugin {
     elements: loaded?.elements || [] as DBElement[],
     resources: loaded?.resources || [] as DBResource[],
     sessions: loaded?.sessions || [] as DBSession[],
-    apiKeys: loaded?.apiKeys || [] as DBApiKey[],
   }
 
   function isUploadUrl(url: string): boolean {
@@ -150,14 +146,6 @@ function mockAPIPlugin(): Plugin {
   }
 
   function auth(headers: Record<string, string>) {
-    const apiKey = headers['x-api-key'] || headers['authorization']?.replace(/^Bearer\s+/i, '')
-    if (apiKey && apiKey.startsWith('qm_')) {
-      const record = db.apiKeys.find(k => k.key === apiKey)
-      if (!record) return null
-      if (record.expiresAt && new Date(record.expiresAt) < new Date()) return null
-      record.lastUsedAt = new Date().toISOString()
-      return db.users.find(u => u.id === record.userId) || null
-    }
     const cookie = (headers.cookie || '')
     const m = cookie.match(/auth_token=([^;]+)/)
     if (!m) return null
@@ -223,53 +211,10 @@ function mockAPIPlugin(): Plugin {
       return j({ user })
     }
 
-    // ── API Keys ──
-    if (path === '/api/apikeys' && method === 'GET') {
-      const u = auth(headers)
-      if (!u) return j({ error: '未登录' }, 401)
-      const keys = db.apiKeys.filter(k => k.userId === u.id).map(k => ({
-        id: k.id,
-        name: k.name,
-        key: k.key.substring(0, 8) + '...' + k.key.substring(k.key.length - 4),
-        createdAt: k.createdAt,
-        lastUsedAt: k.lastUsedAt,
-        expiresAt: k.expiresAt,
-      }))
-      return j({ apiKeys: keys })
-    }
-    if (path === '/api/apikeys' && method === 'POST') {
-      const u = auth(headers)
-      if (!u) return j({ error: '未登录' }, 401)
-      const keyName = body.name || 'API Key'
-      const rawKey = 'qm_' + uid() + uid() + uid()
-      const record: DBApiKey = {
-        id: 'key-' + uid(),
-        key: rawKey,
-        name: keyName,
-        userId: u.id,
-        createdAt: new Date().toISOString(),
-        lastUsedAt: null,
-        expiresAt: body.expiresAt || null,
-      }
-      db.apiKeys.push(record)
-      saveDB()
-      return j({ apiKey: { id: record.id, name: record.name, key: rawKey, createdAt: record.createdAt, expiresAt: record.expiresAt } })
-    }
-    if (path === '/api/apikeys' && method === 'DELETE') {
-      const u = auth(headers)
-      if (!u) return j({ error: '未登录' }, 401)
-      const keyId = search.keyId
-      const idx = db.apiKeys.findIndex(k => k.id === keyId && k.userId === u.id)
-      if (idx < 0) return j({ error: '不存在' }, 404)
-      db.apiKeys.splice(idx, 1)
-      saveDB()
-      return j({})
-    }
-
     // ── External API (v1) ──
     if (path.startsWith('/api/v1/')) {
       const u = auth(headers)
-      if (!u) return j({ error: '未授权，请提供有效的 API Key', docs: '使用 X-API-Key 或 Authorization: Bearer qm_xxx 头部进行认证' }, 401)
+      if (!u) return j({ error: '未授权，请先登录' }, 401)
 
       const subPath = path.replace('/api/v1/', '')
 
@@ -440,6 +385,28 @@ function mockAPIPlugin(): Plugin {
       return j({})
     }
 
+    // ── Team Lookup (by invite code) ──
+    if (path === '/api/teams/lookup' && method === 'GET') {
+      const code = search.code
+      if (!code) return j({ error: '缺少邀请码' }, 400)
+      const team = db.teams.find(t => t.inviteCode === code.trim().toUpperCase())
+      if (!team) return j({ error: '邀请码无效或团队不存在' }, 404)
+      const owner = db.users.find(u => u.id === team.ownerId)
+      const members = db.teamMembers.get(team.id) || []
+      const memberCount = members.length
+      const u = auth(headers)
+      const isMember = u ? !!members.find(m => m.userId === u.id) : false
+      return j({
+        id: team.id,
+        name: team.name,
+        icon: team.icon,
+        memberCount,
+        ownerName: owner?.name || '未知',
+        isMember,
+        createdAt: team.id.replace('team-', ''),
+      })
+    }
+
     // ── Team Members ──
     if (path === '/api/teams/join' && method === 'GET') {
       return j({ members: db.teamMembers.get(search.teamId) || [] })
@@ -482,6 +449,13 @@ function mockAPIPlugin(): Plugin {
     }
 
     // ── Boards ──
+    // Get single board by ID
+    if (path.startsWith('/api/boards/') && method === 'GET') {
+      const boardId = path.split('/').pop() || ''
+      const board = db.boards.find(b => b.id === boardId)
+      if (!board) return j({ error: '导演板不存在' }, 404)
+      return j({ board })
+    }
     if (path === '/api/boards' && method === 'GET') {
       return j({ boards: db.boards.filter(b => b.teamId === search.teamId) })
     }

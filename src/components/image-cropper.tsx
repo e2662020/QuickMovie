@@ -14,8 +14,6 @@ import {
   X,
   Move,
   Palette,
-  Maximize2,
-  Minimize2,
 } from 'lucide-react'
 
 interface ImageCropperProps {
@@ -96,7 +94,6 @@ export function ImageCropper({ image, onCrop, onCancel, aspectRatio = 1 }: Image
   const [backgroundColor, setBackgroundColor] = useState('#FFFFFF')
   const [bgColorPickerOpen, setBgColorPickerOpen] = useState(false)
   const [customBgColor, setCustomBgColor] = useState('')
-  const [padding, setPadding] = useState(0)
 
   // Load image
   useEffect(() => {
@@ -168,68 +165,49 @@ export function ImageCropper({ image, onCrop, onCancel, aspectRatio = 1 }: Image
     setScale(1)
     setRotation(0)
     setPosition({ x: 0, y: 0 })
-    setPadding(0)
   }
 
-  // Crop the image
+  // Crop the image - render preview to offscreen canvas, then extract crop region
   const handleCrop = useCallback(() => {
     if (!imgElement || !containerRef.current) return
 
     const container = containerRef.current
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    const rect = container.getBoundingClientRect()
+    const dpr = window.devicePixelRatio
 
-    const containerSize = Math.min(container.clientWidth, container.clientHeight)
-    const size = containerSize * window.devicePixelRatio
+    // Offscreen canvas matching the full preview container (CSS pixels)
+    const fullW = rect.width
+    const fullH = rect.height
+    const previewCanvas = document.createElement('canvas')
+    previewCanvas.width = fullW * dpr
+    previewCanvas.height = fullH * dpr
+    const pCtx = previewCanvas.getContext('2d')!
+    pCtx.scale(dpr, dpr)
 
-    canvas.width = size
-    canvas.height = size
+    // 1. Fill background color (matches the absolute inset-0 bg div)
+    pCtx.fillStyle = backgroundColor
+    pCtx.fillRect(0, 0, fullW, fullH)
 
-    // Draw background
-    ctx.fillStyle = backgroundColor
-    ctx.fillRect(0, 0, size, size)
+    // 2. Draw image exactly as CSS does it
+    // CSS: absolute inset-0 flex items-center justify-center → image centered in container
+    // Then: transform: translate(x,y) rotate(θ) scale(s)
+    pCtx.save()
+    pCtx.translate(fullW / 2, fullH / 2)
+    pCtx.translate(position.x, position.y)
+    pCtx.rotate((rotation * Math.PI) / 180)
+    pCtx.scale(scale, scale)
 
-    // Calculate drawing coordinates
-    const img = imgElement
-    const containerCenter = containerSize / 2
-
-    // Calculate image dimensions with scale and rotation
-    let imgWidth = img.naturalWidth * scale
-    let imgHeight = img.naturalHeight * scale
-
+    let drawW = imgElement.naturalWidth
+    let drawH = imgElement.naturalHeight
     if (rotation % 180 !== 0) {
-      ;[imgWidth, imgHeight] = [imgHeight, imgWidth]
+      ;[drawW, drawH] = [drawH, drawW]
     }
+    pCtx.drawImage(imgElement, -drawW / 2, -drawH / 2, drawW, drawH)
+    pCtx.restore()
 
-    // Save context state
-    ctx.save()
-
-    // Translate to center
-    ctx.translate(size / 2, size / 2)
-
-    // Apply rotation
-    ctx.rotate((rotation * Math.PI) / 180)
-
-    // Calculate position (adjust for padding)
-    const paddingPx = (padding / 100) * size
-    const scaledPositionX = (position.x / containerSize) * size
-    const scaledPositionY = (position.y / containerSize) * size
-
-    // Draw image
-    ctx.drawImage(
-      img,
-      -imgWidth / 2 + scaledPositionX,
-      -imgHeight / 2 + scaledPositionY,
-      imgWidth,
-      imgHeight
-    )
-
-    ctx.restore()
-
-    const result = canvas.toDataURL('image/png')
+    const result = previewCanvas.toDataURL('image/png')
     onCrop(result)
-  }, [imgElement, scale, rotation, position, backgroundColor, padding, onCrop])
+  }, [imgElement, scale, rotation, position, backgroundColor, onCrop])
 
   return (
     <div className="flex flex-col gap-4 w-full max-w-lg mx-auto animate-scale-in">
@@ -248,15 +226,11 @@ export function ImageCropper({ image, onCrop, onCancel, aspectRatio = 1 }: Image
         onTouchMove={handleMouseMove}
         onTouchEnd={handleMouseUp}
       >
-        {/* Background preview */}
+        {/* Background preview - fills areas where image doesn't cover */}
         <div
           className="absolute inset-0"
           style={{ backgroundColor }}
         />
-
-        {/* Crop guide border */}
-        <div className="absolute inset-4 border-2 border-dashed border-white/50 pointer-events-none z-10" />
-        <div className="absolute inset-0 pointer-events-none z-10 shadow-[inset_0_0_0_9999px_rgba(0,0,0,0.3)]" />
 
         {imageUrl && (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -268,7 +242,6 @@ export function ImageCropper({ image, onCrop, onCancel, aspectRatio = 1 }: Image
               className="max-w-none select-none"
               style={{
                 transform: `translate(${position.x}px, ${position.y}px) rotate(${rotation}deg) scale(${scale})`,
-                padding: `${padding}%`,
               }}
             />
           </div>
@@ -331,24 +304,6 @@ export function ImageCropper({ image, onCrop, onCancel, aspectRatio = 1 }: Image
               重置
             </Button>
           </div>
-        </div>
-
-        {/* Padding */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <Maximize2 className="h-3.5 w-3.5" />
-              内边距
-            </span>
-            <span>{padding}%</span>
-          </div>
-          <Slider
-            value={[padding]}
-            min={0}
-            max={40}
-            step={1}
-            onValueChange={([v]) => setPadding(v)}
-          />
         </div>
 
         {/* Background Color */}

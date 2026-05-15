@@ -142,11 +142,11 @@ const DEFAULT_SCRIPT: ScriptData = {
 type PageBg = 'white' | 'black' | 'blue' | 'green' | 'yellow'
 
 const PAGE_BG_OPTIONS: { value: PageBg; label: string; color: string; darkColor: string; dark: boolean }[] = [
-  { value: 'white', label: '白色', color: '#ffffff', darkColor: '#141414', dark: false },
+  { value: 'white', label: '白色', color: '#ffffff', darkColor: '#1e1e2e', dark: false },
   { value: 'black', label: '黑色', color: '#1a1a1a', darkColor: '#1a1a1a', dark: true },
-  { value: 'blue', label: '淡蓝', color: '#e3f2fd', darkColor: '#1a1a1a', dark: false },
-  { value: 'green', label: '淡绿', color: '#e8f5e9', darkColor: '#141414', dark: false },
-  { value: 'yellow', label: '淡黄', color: '#fff8e1', darkColor: '#141414', dark: false },
+  { value: 'blue', label: '淡蓝', color: '#e3f2fd', darkColor: '#181825', dark: false },
+  { value: 'green', label: '淡绿', color: '#e8f5e9', darkColor: '#1a1d1c', dark: false },
+  { value: 'yellow', label: '淡黄', color: '#fff8e1', darkColor: '#1d1c18', dark: false },
 ]
 
 function generateId(): string {
@@ -765,7 +765,10 @@ function ScriptBlockEditor({
                     ? '角色台词...'
                     : ''
           }
-          style={{ '--placeholder-color': isDarkBg ? 'rgba(200, 200, 200, 0.2)' : 'rgba(113, 113, 122, 0.3)' } as React.CSSProperties}
+          style={{ 
+            '--placeholder-color': isDarkBg ? 'rgba(200, 200, 200, 0.2)' : 'rgba(113, 113, 122, 0.3)',
+            color: isDarkBg ? '#e5e7eb' : '#1f2937',
+          } as React.CSSProperties}
         />
 
         {linkedElement && (
@@ -1557,7 +1560,7 @@ export function ScriptEditor() {
                       <button
                         key={bt.value}
                         type="button"
-                        className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-gray-50 transition-colors text-left"
+                        className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-muted transition-colors text-left"
                         onClick={() => {
                           const lastBlock =
                             data.blocks[data.blocks.length - 1]
@@ -1566,10 +1569,10 @@ export function ScriptEditor() {
                           }
                         }}
                       >
-                        <span className="text-gray-400">{bt.icon}</span>
+                        <span className="text-muted-foreground">{bt.icon}</span>
                         <div className="flex-1">
-                          <span className="font-medium text-gray-700">{bt.label}</span>
-                          <span className="text-xs text-gray-400 ml-1.5">
+                          <span className="font-medium text-foreground">{bt.label}</span>
+                          <span className="text-xs text-muted-foreground ml-1.5">
                             {bt.description}
                           </span>
                         </div>

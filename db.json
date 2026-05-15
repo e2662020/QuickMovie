@@ -1,94 +1,70 @@
 {
   "teams": [
     {
-      "id": "team-mozugwu49x947m",
+      "id": "team-mp6x36jpsxzcki",
       "name": "RATE",
-      "icon": "🎬",
-      "inviteCode": "MOZUGWU4",
+      "icon": "/uploads/mp6x34aa4aom11.png",
+      "inviteCode": "MP6X36JP",
       "ownerId": "user-001"
     }
   ],
   "teamMembers": {
-    "team-mozugwu49x947m": [
+    "team-mp6x36jpsxzcki": [
       {
         "userId": "user-001",
         "name": "管理员",
         "email": "admin@quickmovie.cn",
         "role": "owner",
-        "joinedAt": "2026-05-10T14:04:39.868Z"
+        "joinedAt": "2026-05-15T12:52:21.349Z"
       }
     ]
   },
   "boards": [
     {
-      "id": "board-mozv2l91erx88b",
+      "id": "board-mp6yphynsp7lmc",
       "name": "111",
-      "teamId": "team-mozugwu49x947m",
+      "teamId": "team-mp6x36jpsxzcki",
       "createdBy": "user-001",
-      "createdAt": "2026-05-10T14:21:31.285Z",
-      "updatedAt": "2026-05-10T14:21:31.285Z"
+      "createdAt": "2026-05-15T13:37:42.191Z",
+      "updatedAt": "2026-05-15T13:37:42.191Z"
     }
   ],
   "boardFiles": [
     {
-      "id": "file-mozvbuetnjth6v",
-      "boardId": "board-mozv2l91erx88b",
-      "parentId": null,
-      "name": "未命名剧本",
-      "type": "script",
-      "content": "{\"title\":\"\",\"writer\":\"\",\"version\":\"第一稿\",\"blocks\":[{\"id\":\"default-2\",\"type\":\"action\",\"content\":\"你好，\"}]}",
-      "sortOrder": 0,
-      "createdAt": "2026-05-10T14:28:43.061Z",
-      "updatedAt": "2026-05-14T23:00:10.306Z"
-    },
-    {
-      "id": "file-mp2qnfxriva0kc",
-      "boardId": "board-mozv2l91erx88b",
+      "id": "file-mp6ypm5r0i1tc5",
+      "boardId": "board-mp6yphynsp7lmc",
       "parentId": null,
       "name": "未命名策划案",
       "type": "planning",
-      "content": "{\"title\":\"111\",\"format\":\"电影\",\"genre\":\"\",\"duration\":\"\",\"targetAudience\":\"\",\"logline\":\"\",\"synopsis\":\"\",\"themes\":[],\"keywords\":[],\"references\":[],\"notes\":\"\"}",
-      "sortOrder": 1,
-      "createdAt": "2026-05-12T14:41:04.623Z",
-      "updatedAt": "2026-05-14T23:00:28.489Z"
+      "content": "{\"title\":\"1·11\",\"format\":\"电影\",\"genre\":\"\",\"duration\":\"\",\"targetAudience\":\"\",\"logline\":\"\",\"synopsis\":\"\",\"themes\":[],\"keywords\":[],\"references\":[],\"notes\":\"\"}",
+      "sortOrder": 0,
+      "createdAt": "2026-05-15T13:37:47.631Z",
+      "updatedAt": "2026-05-15T13:53:27.718Z"
     },
     {
-      "id": "file-mp45f50r1xvxky",
-      "boardId": "board-mozv2l91erx88b",
+      "id": "file-mp6yqz9juvw5wg",
+      "boardId": "board-mp6yphynsp7lmc",
       "parentId": null,
-      "name": "未命名笔记",
-      "type": "note",
-      "content": "{\"columns\":[{\"id\":\"a4820094-e9a4-49e9-a67c-beb6d2fe81c8\",\"title\":\"笔记 1\",\"content\":\"#\\n\\n1111\"},{\"id\":\"a917fa54-9521-4d43-a6d2-d39e3673cb1c\",\"title\":\"笔记 2\",\"content\":\"\"}]}",
-      "sortOrder": 2,
-      "createdAt": "2026-05-13T14:22:17.643Z",
-      "updatedAt": "2026-05-14T23:05:26.884Z"
+      "name": "未命名剧本",
+      "type": "script",
+      "content": "{\"title\":\"\",\"writer\":\"\",\"version\":\"第一稿\",\"blocks\":[{\"id\":\"default-2\",\"type\":\"action\",\"content\":\"在这里开始写作你的剧本...\"},{\"id\":\"blk-1778853100212-3olb9f\",\"type\":\"scene_heading\",\"content\":\"场景111\"},{\"id\":\"blk-1778853173300-gxeoa3\",\"type\":\"scene_heading\",\"content\":\"场景 - 内景/111111外景 - 时间111\"},{\"id\":\"blk-1778853891095-8yph3x\",\"type\":\"scene_heading\",\"content\":\"场景 - 内景/外景 - 时间\"}]}",
+      "sortOrder": 1,
+      "createdAt": "2026-05-15T13:38:51.271Z",
+      "updatedAt": "2026-05-15T14:10:32.888Z"
     },
     {
-      "id": "file-mp63epwm0avdys",
-      "boardId": "board-mozv2l91erx88b",
+      "id": "file-mp6zwzs7aeum9f",
+      "boardId": "board-mp6yphynsp7lmc",
       "parentId": null,
       "name": "未命名故事板",
       "type": "storyboard",
       "content": "",
-      "sortOrder": 3,
-      "createdAt": "2026-05-14T23:01:31.174Z",
-      "updatedAt": "2026-05-14T23:01:31.174Z"
+      "sortOrder": 2,
+      "createdAt": "2026-05-15T14:11:31.495Z",
+      "updatedAt": "2026-05-15T14:11:31.495Z"
     }
   ],
-  "elements": [
-    {
-      "id": "elem-mp63h5kek5fmmd",
-      "boardId": "board-mozv2l91erx88b",
-      "fileId": null,
-      "type": "mind_map",
-      "name": "新角色",
-      "content": "",
-      "color": "#3b82f6",
-      "position": "{\"x\":493.14138680010893,\"y\":336.9182105967055}",
-      "createdAt": "2026-05-14T23:03:24.782Z",
-      "updatedAt": "2026-05-14T23:03:24.782Z"
-    }
-  ],
+  "elements": [],
   "resources": [],
   "sessions": [
     {
@@ -110,7 +86,30 @@
     {
       "token": "mp63ashbzawwx4mp63ashbnhe7bx",
       "userId": "user-001"
+    },
+    {
+      "token": "mp6wbc43xst3sump6wbc436hhuk6",
+      "userId": "user-001"
+    },
+    {
+      "token": "mp6wd363s569ehmp6wd363opcj1j",
+      "userId": "user-001"
+    },
+    {
+      "token": "mp6yevtujek7p6mp6yevtunhavhv",
+      "userId": "user-001"
+    },
+    {
+      "token": "mp6ypetbhdq4y8mp6ypetb1otpnp",
+      "userId": "user-001"
+    },
+    {
+      "token": "mp6zcchzosz767mp6zcchz0tg14k",
+      "userId": "user-001"
+    },
+    {
+      "token": "mp6zfravq9b1ldmp6zfravcez1j8",
+      "userId": "user-001"
     }
-  ],
-  "apiKeys": []
+  ]
 }

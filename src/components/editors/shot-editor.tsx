@@ -630,7 +630,7 @@ function DetailPanel({
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted group-hover:bg-primary/10 transition-colors">
                     <Image className="h-6 w-6" />
                   </div>
-                  <span className="text-xs">点击上传或使用AI生成</span>
+                  <span className="text-xs">点击上传或智能生成</span>
                 </div>
               )}
               <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 hover:bg-black/30 hover:opacity-100 transition-all">
@@ -649,10 +649,10 @@ function DetailPanel({
               size="sm"
               variant="outline"
               className="w-full gap-1.5"
-              onClick={() => toast.info('AI画面生成功能开发中')}
+              onClick={() => toast.info('智能画面生成功能开发中')}
             >
               <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-              AI 生成画面
+              智能生成画面
             </Button>
           </div>
 
@@ -1183,7 +1183,7 @@ export function ShotEditor() {
     [shots, selectedShotIndex]
   )
 
-  // ── AI mock generation ──
+  // ── Mock generation ──
   const handleAiBatchGenerate = useCallback(async () => {
     if (shots.length === 0) {
       toast.error('请先添加镜头')
@@ -1211,7 +1211,7 @@ export function ShotEditor() {
     }))
     setDirty(true)
     setAiGenerating(false)
-    toast.success('AI 已为所有空镜头生成画面描述')
+    toast.success('已为所有空镜头生成画面描述')
   }, [shots])
 
   const handleExport = useCallback(() => {
@@ -1394,10 +1394,10 @@ export function ShotEditor() {
                 ) : (
                   <Sparkles className="h-3 w-3 text-amber-500" />
                 )}
-                <span className="hidden md:inline">AI 批量生成</span>
+                <span className="hidden md:inline">批量生成</span>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>AI 为空镜头生成画面描述</TooltipContent>
+            <TooltipContent>为空镜头生成画面描述</TooltipContent>
           </Tooltip>
 
           <Separator orientation="vertical" className="h-5" />

@@ -93,6 +93,16 @@ src/
 | `npm run preview` | 预览生产构建 |
 | `npm run lint` | 运行 ESLint 检查 |
 
+## Star History
+
+<a href="https://www.star-history.com/?repos=e2662020%2FQuickMovie">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=e2662020/QuickMovie&type=date&theme=dark&legend=top-left" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=e2662020/QuickMovie&type=date&legend=top-left" />
+    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=e2662020/QuickMovie&type=date&legend=top-left" />
+  </picture>
+</a>
+
 ## 许可证
 
 本项目采用 **双许可证模式**：

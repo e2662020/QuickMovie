@@ -11,7 +11,6 @@ import { ScriptEditor } from '@/components/editors/script-editor'
 import { ShotEditor } from '@/components/editors/shot-editor'
 import { NoteEditor } from '@/components/editors/note-editor'
 
-
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -106,11 +105,11 @@ const FILE_TYPE_CONFIG: Record<
 }
 
 const PAGE_BG_OPTIONS: { value: string; label: string; color: string; darkColor: string; dark: boolean }[] = [
-  { value: 'white', label: '白色', color: '#ffffff', darkColor: '#141414', dark: false },
+  { value: 'white', label: '白色', color: '#ffffff', darkColor: '#1e1e2e', dark: false },
   { value: 'black', label: '黑色', color: '#1a1a1a', darkColor: '#1a1a1a', dark: true },
-  { value: 'blue', label: '淡蓝', color: '#eef6fc', darkColor: '#1a1a1a', dark: false },
-  { value: 'green', label: '淡绿', color: '#edf7ed', darkColor: '#141414', dark: false },
-  { value: 'yellow', label: '淡黄', color: '#fef9e7', darkColor: '#141414', dark: false },
+  { value: 'blue', label: '淡蓝', color: '#eef6fc', darkColor: '#181825', dark: false },
+  { value: 'green', label: '淡绿', color: '#edf7ed', darkColor: '#1a1d1c', dark: false },
+  { value: 'yellow', label: '淡黄', color: '#fef9e7', darkColor: '#1d1c18', dark: false },
 ]
 
 const getPageBgColor = (bg: string): string => {
@@ -183,7 +182,7 @@ function PlaceholderEditor({
       </div>
       <div className="flex items-center gap-2 rounded-full border bg-muted/30 px-4 py-2 text-xs text-muted-foreground">
         <Sparkles className="h-3.5 w-3.5" />
-        AI 辅助创作功能即将上线
+        智能辅助创作功能即将上线
       </div>
     </div>
   )
@@ -698,6 +697,19 @@ export function BoardWorkspace() {
       setView('dashboard')
     }
   }, [currentBoard, setView])
+
+  // ── Sync file to URL params ──
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const currentFileInUrl = params.get('file')
+    if (currentFile && currentFileInUrl !== currentFile.id) {
+      params.set('file', currentFile.id)
+      window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
+    } else if (!currentFile && currentFileInUrl) {
+      params.delete('file')
+      window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
+    }
+  }, [currentFile])
 
   // ── Local State ──
   const [loading, setLoading] = useState(true)
@@ -1308,7 +1320,7 @@ export function BoardWorkspace() {
             </h1>
             {currentTeam && (
               <p className="truncate text-[11px] text-muted-foreground leading-tight">
-                {currentTeam.icon} {currentTeam.name}
+                {currentTeam.name}
               </p>
             )}
           </div>

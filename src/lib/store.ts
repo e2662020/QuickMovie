@@ -148,7 +148,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
   sidebarOpen: true,
   resourcePanelOpen: false,
   pageBg: typeof window !== 'undefined' ? localStorage.getItem('script-editor-bg') || 'white' : 'white',
-  darkMode: false,
+  darkMode: typeof window !== 'undefined' ? (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) : false,
   deletedFiles: [],
   deletedFilesTimeout: null,
 
@@ -180,7 +180,10 @@ export const useAppStore = create<AppState>()((set, get) => ({
     try { localStorage.setItem('script-editor-bg', bg) } catch { /* ignore */ }
     set({ pageBg: bg })
   },
-  setDarkMode: (dark) => set({ darkMode: dark }),
+  setDarkMode: (dark) => {
+    try { localStorage.setItem('theme', dark ? 'dark' : 'light') } catch { /* ignore */ }
+    set({ darkMode: dark })
+  },
   addDeletedFile: (file) => {
     const state = get()
     if (state.deletedFilesTimeout) {

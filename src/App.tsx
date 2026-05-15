@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useState } from 'react'
-import { useNavigate, useRoutes } from 'react-router-dom'
+import { createContext, useContext, useEffect, useState, useRef } from 'react'
+import { useRoutes } from 'react-router-dom'
 import { useAppStore, type AppView } from '@/lib/store'
 import { LandingView } from '@/components/views/landing'
 import { AuthView } from '@/components/views/auth'
@@ -9,6 +9,7 @@ import { InviteView } from '@/components/views/invite'
 import { Toaster } from '@/components/ui/toaster'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Loader2 } from 'lucide-react'
+import { ErrorBoundary } from '@/components/error-boundary'
 
 interface ThemeContextType {
   theme: 'light' | 'dark'
@@ -35,10 +36,13 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
   })
 
   useEffect(() => {
-    const root = document.documentElement
-    root.classList.toggle('dark', theme === 'dark')
     localStorage.setItem('theme', theme)
   }, [theme])
+
+  useEffect(() => {
+    const root = document.documentElement
+    root.classList.toggle('dark', theme === 'dark')
+  }, [])
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
@@ -57,48 +61,50 @@ const pathToView: Record<string, AppView> = {
   '/invite': 'invite',
 }
 
-// Map view to URL path
+// Resolve URL path to view and optional boardId/fileId
+function resolvePath(path: string): { view: AppView; boardId?: string; fileId?: string } {
+  const boardMatch = path.match(/^\/board\/([^/?]+)/)
+  if (boardMatch) {
+    const params = new URLSearchParams(window.location.search)
+    return { view: 'board', boardId: boardMatch[1], fileId: params.get('file') || undefined }
+  }
+  if (path === '/board') return { view: 'dashboard' }
+  const view = pathToView[path]
+  return { view: view || 'landing' }
+}
+
+// Map view to URL path (board handled separately due to boardId param)
 const viewToPath: Record<AppView, string> = {
   landing: '/',
   login: '/login',
   register: '/register',
   dashboard: '/dashboard',
-  board: '/board',
+  board: '/dashboard', // fallback, actual URL generated dynamically
   invite: '/invite',
 }
 
 function MainContent() {
-  const { currentView, setUser, setView, setTeams, setInviteCode } = useAppStore()
-  const navigate = useNavigate()
+  const { currentView, currentBoard, setUser, setView, setTeams, setCurrentBoard, setCurrentFile, setBoardFiles, setInviteCode } = useAppStore()
   const [loading, setLoading] = useState(true)
+  const initialized = useRef(false)
 
-  // Handle invite code from URL on initial load
+  // Single init effect: only run once on first mount
   useEffect(() => {
+    if (initialized.current) return
+    initialized.current = true
+
+    const path = window.location.pathname
     const params = new URLSearchParams(window.location.search)
     const code = params.get('code')
-    if (code && window.location.pathname === '/invite') {
+    const resolved = resolvePath(path)
+
+    // Set invite code if present on /invite page
+    if (code && path === '/invite') {
       setInviteCode(code)
-      setView('invite')
     }
-  }, [setView, setInviteCode])
 
-  // Sync URL with currentView
-  useEffect(() => {
-    const expectedPath = viewToPath[currentView]
-    if (window.location.pathname !== expectedPath) {
-      navigate(expectedPath, { replace: true })
-    }
-  }, [currentView, navigate])
-
-  // Sync currentView with URL on initial load
-  useEffect(() => {
-    const path = window.location.pathname
-    const view = pathToView[path] || 'landing'
-    setView(view)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    async function checkAuth() {
+    // Check auth first, then set view based on result
+    async function init() {
       try {
         const res = await fetch('/api/auth/me')
         if (res.ok) {
@@ -110,21 +116,60 @@ function MainContent() {
               const teamsData = await teamsRes.json()
               setTeams(teamsData.teams || [])
             }
-            // If on landing/login/register, redirect to dashboard
-            const currentPath = window.location.pathname
-            if (currentPath === '/' || currentPath === '/login' || currentPath === '/register') {
-              setView('dashboard')
-            }
           }
         }
       } catch {
-        // Stay on landing
-      } finally {
-        setLoading(false)
+        // ignore auth errors
       }
+
+      // Restore board state from URL if direct board link
+      let boardRestored = false
+      if (resolved.view === 'board' && resolved.boardId) {
+        try {
+          const boardRes = await fetch(`/api/boards/${encodeURIComponent(resolved.boardId)}`)
+          if (boardRes.ok) {
+            const boardData = await boardRes.json()
+            if (boardData.board) {
+              setCurrentBoard(boardData.board)
+              // Also load board files to restore file selection
+              const filesRes = await fetch(`/api/boards/files?boardId=${encodeURIComponent(resolved.boardId)}`)
+              if (filesRes.ok) {
+                const filesData = await filesRes.json()
+                setBoardFiles(filesData.files || [])
+                if (resolved.fileId) {
+                  const file = filesData.files?.find((f: any) => f.id === resolved.fileId)
+                  if (file) setCurrentFile(file)
+                }
+              }
+              boardRestored = true
+            }
+          }
+        } catch {
+          // board not found or error, fall back to dashboard
+        }
+      }
+
+      // Set view AFTER auth check and board restore
+      const view = boardRestored ? 'board' : (resolved.view === 'board' ? 'dashboard' : resolved.view)
+      setView(view)
+      setLoading(false)
     }
-    checkAuth()
-  }, [setUser, setTeams])
+    init()
+  }, [setUser, setView, setTeams, setInviteCode])
+
+  // Sync URL when view changes (but not on init to avoid loops)
+  useEffect(() => {
+    if (loading) return
+    let expectedPath: string
+    if (currentView === 'board' && currentBoard) {
+      expectedPath = `/board/${currentBoard.id}`
+    } else {
+      expectedPath = viewToPath[currentView] || '/'
+    }
+    if (window.location.pathname !== expectedPath) {
+      window.history.replaceState(null, '', expectedPath)
+    }
+  }, [currentView, currentBoard, loading])
 
   if (loading) {
     return (
@@ -170,6 +215,7 @@ function AppRoutes() {
     { path: '/login', element: <MainContent /> },
     { path: '/register', element: <MainContent /> },
     { path: '/dashboard', element: <MainContent /> },
+    { path: '/board/:boardId', element: <MainContent /> },
     { path: '/board', element: <MainContent /> },
     { path: '/invite', element: <MainContent /> },
     { path: '*', element: <MainContent /> },
@@ -179,10 +225,12 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <TooltipProvider delayDuration={300}>
-        <AppRoutes />
-      </TooltipProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <TooltipProvider delayDuration={300}>
+          <AppRoutes />
+        </TooltipProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   )
 }

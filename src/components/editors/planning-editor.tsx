@@ -97,7 +97,7 @@ const GENRE_SUGGESTIONS = [
   '奇幻', '冒险', '犯罪', '惊悚', '战争', '历史', '传记', '武侠', '家庭',
 ]
 
-// Mock AI-generated planning data
+// Mock planning data
 const MOCK_AI_RESPONSES: PlanningData[] = [
   {
     title: '星际迷途',
@@ -106,9 +106,9 @@ const MOCK_AI_RESPONSES: PlanningData[] = [
     duration: '128分钟',
     targetAudience: '18-45岁',
     logline: '一位失去记忆的宇航员在废弃空间站中醒来，必须解开自己的身份之谜，才能阻止即将坠向地球的神秘飞行器。',
-    synopsis: '2187年，人类已在太阳系建立了多个殖民地。宇航员林辰在一次例行巡航任务中遭遇事故，在一个废弃空间站中苏醒，完全丧失了事故前的记忆。空间站的生命维持系统正在衰竭，留给他的时间不多了。随着记忆碎片逐渐恢复，他发现自己曾参与了一项绝密实验——与外星智能体的首次接触。实验出了严重差错，一个失控的AI系统接管了附近的太空设施，正在驾驶一艘巨大的太空飞行器驶向地球。林辰必须在空间站彻底崩溃之前，找回完整的记忆，找到关闭AI的方法，并做出一个关乎全人类命运的抉择。',
-    themes: ['身份认同', '人工智能', '牺牲与救赎', '孤独与连接'],
-    keywords: ['太空', '失忆', 'AI危机', '科幻悬疑', '末日倒计时'],
+    synopsis: '2187年，人类已在太阳系建立了多个殖民地。宇航员林辰在一次例行巡航任务中遭遇事故，在一个废弃空间站中苏醒，完全丧失了事故前的记忆。空间站的生命维持系统正在衰竭，留给他的时间不多了。随着记忆碎片逐渐恢复，他发现自己曾参与了一项绝密实验——与外星智能体的首次接触。实验出了严重差错，一个失控的智能系统接管了附近的太空设施，正在驾驶一艘巨大的太空飞行器驶向地球。林辰必须在空间站彻底崩溃之前，找回完整的记忆，找到关闭智能系统的方法，并做出一个关乎全人类命运的抉择。',
+    themes: ['身份认同', '科技伦理', '牺牲与救赎', '孤独与连接'],
+    keywords: ['太空', '失忆', '智能危机', '科幻悬疑', '末日倒计时'],
     references: ['星际穿越', '银翼杀手2049', '太空旅客'],
     notes: '预算估算：中等偏上，需要大量CGI特效。核心场景为太空站内部和外部太空场景。建议参考《星际穿越》和《地心引力》的视觉风格。',
   },
@@ -572,7 +572,7 @@ export function PlanningEditor() {
     []
   )
 
-  // ── AI mock generation ──
+  // ── Mock generation ──
   const handleAiGenerate = useCallback(async () => {
     if (!aiPrompt.trim()) {
       toast.error('请输入你的故事想法')
@@ -580,7 +580,7 @@ export function PlanningEditor() {
     }
 
     setAiGenerating(true)
-    // Simulate AI processing delay
+    // Simulate processing delay
     await new Promise((resolve) => setTimeout(resolve, 2000 + Math.random() * 1500))
 
     // Pick a random mock response and customize the title
@@ -597,7 +597,7 @@ export function PlanningEditor() {
     setAiDialogOpen(false)
     setAiPrompt('')
 
-    toast.success('AI 策划案已生成，请查看并编辑')
+    toast.success('策划案已生成，请查看并编辑')
   }, [aiPrompt])
 
   // ── No file guard ──
@@ -662,7 +662,7 @@ export function PlanningEditor() {
             </Tooltip>
           </TooltipProvider>
 
-          {/* AI Assistant button */}
+          {/* Assistant button */}
           <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
             <DialogTrigger asChild>
               <TooltipProvider delayDuration={300}>
@@ -674,10 +674,10 @@ export function PlanningEditor() {
                       className="h-8 gap-1.5"
                     >
                       <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                      <span className="hidden sm:inline">AI辅助</span>
+                      <span className="hidden sm:inline">智能辅助</span>
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>AI 辅助生成策划案</TooltipContent>
+                  <TooltipContent>智能辅助生成策划案</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </DialogTrigger>
@@ -686,10 +686,10 @@ export function PlanningEditor() {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-amber-500" />
-                  AI 辅助生成策划案
+                  智能辅助生成策划案
                 </DialogTitle>
                 <DialogDescription>
-                  描述你的故事想法，AI 将为你生成一份完整的策划案草稿。你可以在此基础上继续编辑完善。
+                  描述你的故事想法，系统将为你生成一份完整的策划案草稿。你可以在此基础上继续编辑完善。
                 </DialogDescription>
               </DialogHeader>
 
@@ -730,12 +730,12 @@ export function PlanningEditor() {
                   {aiGenerating ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      AI 生成中...
+                      生成中...
                     </>
                   ) : (
                     <>
                       <Sparkles className="mr-2 h-4 w-4" />
-                      AI生成策划案
+                      智能生成策划案
                     </>
                   )}
                 </Button>

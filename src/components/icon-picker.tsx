@@ -390,7 +390,7 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
           <DialogHeader className="px-1">
             <DialogTitle>裁剪图片</DialogTitle>
             <DialogDescription>
-              裁剪为 1:1 比例，可添加背景色和内边距
+              裁剪为 1:1 比例，超出区域将用背景色填充
             </DialogDescription>
           </DialogHeader>
           <div className="py-2">
