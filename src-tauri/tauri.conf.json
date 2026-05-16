@@ -10,7 +10,6 @@
     "beforeBuildCommand": "npm run build"
   },
   "app": {
-    "title": "快分镜",
     "windows": [
       {
         "title": "快分镜 - 影视创作协作平台",
