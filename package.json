@@ -11,6 +11,7 @@
     "build:check": "node scripts/build-check.js",
     "preview": "vite preview",
     "lint": "eslint src",
+    "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "node scripts/build-check.js --production && tauri build",
     "tauri:build:windows": "node scripts/build-check.js --production && tauri build --target x86_64-pc-windows-msvc",

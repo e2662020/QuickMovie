@@ -8,26 +8,25 @@ RUN npm run build
 
 # Stage 2: Build server
 FROM node:22-alpine AS server-builder
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ sqlite-dev
 WORKDIR /app/server
 COPY server/package*.json ./
 RUN npm ci
 COPY server/ .
-RUN npm run build
+RUN npx tsc
 
 # Stage 3: Production image
 FROM node:22-alpine
 WORKDIR /app
 
-RUN apk add --no-cache nginx
+RUN apk add --no-cache nginx sqlite-libs
 
 COPY --from=frontend-builder /app/dist /app/dist
 
 COPY --from=server-builder /app/server/dist /app/server/dist
+COPY --from=server-builder /app/server/node_modules /app/server/node_modules
 COPY --from=server-builder /app/server/package*.json /app/server/
 WORKDIR /app/server
-RUN npm ci --omit=dev
-WORKDIR /app
 
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 
