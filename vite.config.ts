@@ -605,6 +605,17 @@ function mockAPIPlugin(): Plugin {
       return j({})
     }
 
+    // ── Setup Wizard ──
+    if (path === '/api/setup/status' && method === 'GET') {
+      return j({ installed: false })
+    }
+    if (path === '/api/setup/config' && method === 'GET') {
+      return j({})
+    }
+    if (path.startsWith('/api/setup/') && method === 'POST') {
+      return j({ success: true })
+    }
+
     return null
   }
 
