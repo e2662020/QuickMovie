@@ -33,9 +33,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "android": {
-      "debugApplicationIdSuffix": ".debug"
-    }
+    "android": {}
   },
   "plugins": {
     "env": {
