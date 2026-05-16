@@ -2,12 +2,25 @@
 /node_modules
 /.pnp
 .pnp.js
+server/node_modules
 
 # testing
 /coverage
 
 # production
 /dist
+server/dist
+
+# Tauri
+src-tauri/target
+
+# SQLite databases
+*.db
+*.db-wal
+*.db-shm
+
+# uploads
+server/uploads/
 
 # misc
 .DS_Store
@@ -21,6 +34,7 @@ yarn-error.log*
 # local env files
 .env
 .env*.local
+.env.local
 
 # typescript
 *.tsbuildinfo

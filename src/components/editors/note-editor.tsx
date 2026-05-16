@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useAppStore } from '@/lib/store'
 import { toast } from 'sonner'
+import { useCollaboration } from '@/hooks/use-collaboration'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -248,6 +249,7 @@ const NoteColumnEditor = React.memo(function NoteColumnEditor({
 
 export function NoteEditor() {
   const { currentFile } = useAppStore()
+  const { collaborators, isConnected } = useCollaboration(currentFile?.id || '')
 
   const [columns, setColumns] = useState<NoteColumn[]>([])
   const [saving, setSaving] = useState(false)
@@ -436,6 +438,24 @@ export function NoteEditor() {
         </div>
 
         <div className="flex items-center gap-1.5">
+          {isConnected && collaborators.length > 0 && (
+            <div className="flex items-center gap-1 mr-2">
+              {collaborators.slice(0, 3).map((c) => (
+                <div
+                  key={c.userId}
+                  className="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-medium text-white ring-2"
+                  style={{ backgroundColor: c.color || '#888' }}
+                  title={c.userName}
+                >
+                  {c.userName?.charAt(0)?.toUpperCase() || '?'}
+                </div>
+              ))}
+              {collaborators.length > 3 && (
+                <span className="text-[10px] text-muted-foreground">+{collaborators.length - 3}</span>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center gap-1.5 mr-1">
             <TooltipProvider delayDuration={400}>
               <Tooltip>

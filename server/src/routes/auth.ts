@@ -120,4 +120,37 @@ router.post('/auth/logout', (_req: Request, res: Response) => {
   res.json({})
 })
 
+function getCurrentUser(req: Request): { id: string; roles: string[] } | null {
+  const cookie = req.headers.cookie || ''
+  const m = cookie.match(/auth_token=([^;]+)/)
+  if (!m) return null
+
+  const db = getDb()
+  const session = db.prepare('SELECT user_id FROM sessions WHERE token = ?').get(m[1]) as { user_id: string } | undefined
+  if (!session) return null
+
+  const dbUser = db.prepare('SELECT id, role FROM users WHERE id = ?').get(session.user_id) as any
+  if (dbUser) {
+    return { id: dbUser.id, roles: [dbUser.role || 'user'] }
+  }
+
+  const accounts = loadTestAccounts()
+  const idx = parseInt(session.user_id.replace('user-', '')) - 1
+  const acc = accounts[idx]
+  if (!acc) return null
+  return { id: session.user_id, roles: acc.roles }
+}
+
+router.get('/admin/users', (req: Request, res: Response) => {
+  const currentUser = getCurrentUser(req)
+  if (!currentUser || !currentUser.roles.includes('admin')) {
+    res.status(403).json({ error: '无权访问' })
+    return
+  }
+
+  const db = getDb()
+  const users = db.prepare('SELECT id, email, name, role, active FROM users').all() as any[]
+  res.json({ users: users.map(u => ({ id: u.id, email: u.email, name: u.name, role: u.role, active: u.active })) })
+})
+
 export default router

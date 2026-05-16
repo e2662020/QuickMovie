@@ -102,4 +102,34 @@ router.post('/auth/logout', (_req, res) => {
     res.setHeader('Set-Cookie', 'auth_token=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0');
     res.json({});
 });
+function getCurrentUser(req) {
+    const cookie = req.headers.cookie || '';
+    const m = cookie.match(/auth_token=([^;]+)/);
+    if (!m)
+        return null;
+    const db = getDb();
+    const session = db.prepare('SELECT user_id FROM sessions WHERE token = ?').get(m[1]);
+    if (!session)
+        return null;
+    const dbUser = db.prepare('SELECT id, role FROM users WHERE id = ?').get(session.user_id);
+    if (dbUser) {
+        return { id: dbUser.id, roles: [dbUser.role || 'user'] };
+    }
+    const accounts = loadTestAccounts();
+    const idx = parseInt(session.user_id.replace('user-', '')) - 1;
+    const acc = accounts[idx];
+    if (!acc)
+        return null;
+    return { id: session.user_id, roles: acc.roles };
+}
+router.get('/admin/users', (req, res) => {
+    const currentUser = getCurrentUser(req);
+    if (!currentUser || !currentUser.roles.includes('admin')) {
+        res.status(403).json({ error: '无权访问' });
+        return;
+    }
+    const db = getDb();
+    const users = db.prepare('SELECT id, email, name, role, active FROM users').all();
+    res.json({ users: users.map(u => ({ id: u.id, email: u.email, name: u.name, role: u.role, active: u.active })) });
+});
 export default router;

@@ -1,3 +1,4 @@
+import { createServer } from 'node:http';
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
@@ -7,6 +8,7 @@ import { getDb, initDb } from './db.js';
 import { authMiddleware, requireAuth } from './middleware/auth.js';
 import { loadTestAccounts } from './utils/accounts.js';
 import { initCrypto } from './services/crypto.js';
+import { setupWebSocket } from './services/collaboration.js';
 import setupRoutes from './routes/setup.js';
 import { setupMiddleware } from './middleware/setup.js';
 import authRoutes from './routes/auth.js';
@@ -14,6 +16,7 @@ import teamRoutes from './routes/teams.js';
 import boardRoutes from './routes/boards.js';
 import uploadRoutes from './routes/upload.js';
 import securityRoutes from './routes/security.js';
+import configRoutes from './routes/config.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
@@ -56,6 +59,7 @@ app.use('/api', teamRoutes);
 app.use('/api', boardRoutes);
 app.use('/api', uploadRoutes);
 app.use('/api', securityRoutes);
+app.use('/api', configRoutes);
 const v1 = express.Router();
 v1.use(requireAuth);
 function boardToV1(b) {
@@ -314,6 +318,8 @@ if (isDev) {
     }
     console.log('');
 }
-app.listen(PORT, () => {
+const server = createServer(app);
+setupWebSocket(server);
+server.listen(PORT, () => {
     console.log(`🚀 QuickMovie API Server 已启动: http://localhost:${PORT}`);
 });

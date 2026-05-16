@@ -5,6 +5,7 @@ import { useAppStore, type StoryElement } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useCollaboration } from '@/hooks/use-collaboration'
 
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -987,6 +988,7 @@ function ShortcutsDialog({ isDarkBg }: { isDarkBg: boolean }) {
 
 export function ScriptEditor() {
   const { currentFile, storyElements, pageBg, darkMode } = useAppStore()
+  const { collaborators, isConnected, sendCursor } = useCollaboration(currentFile?.id || '')
 
   const [data, setData] = useState<ScriptData>(() => ({
     ...DEFAULT_SCRIPT,
@@ -1370,6 +1372,26 @@ export function ScriptEditor() {
             <Clock className="h-3 w-3" />
             {estimateDuration(data.blocks)}
           </span>
+
+          {isConnected && collaborators.length > 0 && (
+            <div className="flex items-center gap-1 ml-2">
+              {collaborators.slice(0, 3).map((c, i) => (
+                <div
+                  key={c.userId}
+                  className="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-medium text-white ring-2"
+                  style={{ backgroundColor: c.color || '#888', boxShadow: `0 0 0 2px ${c.color || '#888'}` }}
+                  title={c.userName}
+                >
+                  {c.userName?.charAt(0)?.toUpperCase() || '?'}
+                </div>
+              ))}
+              {collaborators.length > 3 && (
+                <span className={cn('text-[10px]', isDarkBg ? 'text-gray-500' : 'text-gray-400')}>
+                  +{collaborators.length - 3}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-1">
