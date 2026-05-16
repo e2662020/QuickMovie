@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useAppStore, type BoardFile, type Resource } from '@/lib/store'
+import { apiFetch } from '@/lib/api'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -746,7 +747,7 @@ export function BoardWorkspace() {
   const loadFiles = useCallback(async () => {
     if (!currentBoard) return
     try {
-      const res = await fetch(`/api/boards/files?boardId=${encodeURIComponent(currentBoard.id)}`)
+      const res = await apiFetch(`/api/boards/files?boardId=${encodeURIComponent(currentBoard.id)}`)
       if (res.ok) {
         const data = await res.json()
         setBoardFiles(data.files ?? [])
@@ -761,7 +762,7 @@ export function BoardWorkspace() {
     if (!currentBoard) return
     if (!force && childrenCacheRef.current[folderId]) return
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/boards/files?boardId=${encodeURIComponent(currentBoard.id)}&parentId=${encodeURIComponent(folderId)}`
       )
       if (res.ok) {
@@ -777,7 +778,7 @@ export function BoardWorkspace() {
   const loadResources = useCallback(async () => {
     if (!currentBoard) return
     try {
-      const res = await fetch(`/api/boards/resources?boardId=${encodeURIComponent(currentBoard.id)}`)
+      const res = await apiFetch(`/api/boards/resources?boardId=${encodeURIComponent(currentBoard.id)}`)
       if (res.ok) {
         const data = await res.json()
         setResources(data.resources ?? [])
@@ -791,7 +792,7 @@ export function BoardWorkspace() {
   const loadElements = useCallback(async () => {
     if (!currentBoard) return
     try {
-      const res = await fetch(`/api/boards/elements?boardId=${encodeURIComponent(currentBoard.id)}`)
+      const res = await apiFetch(`/api/boards/elements?boardId=${encodeURIComponent(currentBoard.id)}`)
       if (res.ok) {
         const data = await res.json()
         setStoryElements(data.elements ?? [])
@@ -886,7 +887,7 @@ export function BoardWorkspace() {
     }
     setSubmitting(true)
     try {
-      const res = await fetch('/api/boards/files', {
+      const res = await apiFetch('/api/boards/files', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -934,7 +935,7 @@ export function BoardWorkspace() {
     }
     setSubmitting(true)
     try {
-      const res = await fetch('/api/boards/files', {
+      const res = await apiFetch('/api/boards/files', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileId: targetFile.id, name: renameValue.trim() }),
@@ -970,7 +971,7 @@ export function BoardWorkspace() {
     if (!targetFile) return
     setSubmitting(true)
     try {
-      const res = await fetch(`/api/boards/files?fileId=${encodeURIComponent(targetFile.id)}`, {
+      const res = await apiFetch(`/api/boards/files?fileId=${encodeURIComponent(targetFile.id)}`, {
         method: 'DELETE',
       })
       const data = await res.json()
@@ -989,7 +990,7 @@ export function BoardWorkspace() {
             const restoredFile = undoDeleteFile()
             if (restoredFile) {
               try {
-                const restoreRes = await fetch('/api/boards/files', {
+                const restoreRes = await apiFetch('/api/boards/files', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -1054,7 +1055,7 @@ export function BoardWorkspace() {
         formData.append('file', file)
         formData.append('resource', 'true')
 
-        const res = await fetch('/api/upload', {
+        const res = await apiFetch('/api/upload', {
           method: 'POST',
           body: formData,
         })
@@ -1064,7 +1065,7 @@ export function BoardWorkspace() {
           continue
         }
 
-        const saveRes = await fetch('/api/boards/resources', {
+        const saveRes = await apiFetch('/api/boards/resources', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1094,7 +1095,7 @@ export function BoardWorkspace() {
   // Delete resource
   const handleDeleteResource = async (resource: Resource) => {
     try {
-      const res = await fetch(`/api/boards/resources?resourceId=${encodeURIComponent(resource.id)}`, {
+      const res = await apiFetch(`/api/boards/resources?resourceId=${encodeURIComponent(resource.id)}`, {
         method: 'DELETE',
       })
       const data = await res.json()

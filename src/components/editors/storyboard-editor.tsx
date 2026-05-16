@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useAppStore, type StoryElement, type BoardFile } from '@/lib/store'
+import { apiFetch } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
@@ -137,7 +138,7 @@ async function createElement(
   token: string | null,
   extra?: { content?: string; color?: string; position?: string; fileId?: string | null }
 ): Promise<StoryElement> {
-  const res = await fetch('/api/boards/elements', {
+  const res = await apiFetch('/api/boards/elements', {
     method: 'POST',
     headers: getHeaders(token),
     body: JSON.stringify({
@@ -160,7 +161,7 @@ async function updateElement(
   token: string | null,
   updates: { name?: string; content?: string; color?: string; position?: string }
 ): Promise<StoryElement> {
-  const res = await fetch('/api/boards/elements', {
+  const res = await apiFetch('/api/boards/elements', {
     method: 'PATCH',
     headers: getHeaders(token),
     body: JSON.stringify({ elementId, ...updates }),

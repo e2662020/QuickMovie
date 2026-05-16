@@ -79,12 +79,14 @@ export function ServerSelect() {
     setConnectError('')
     setViewState('connecting')
 
+    const apiUrl = `${server.url}/api/privacy`
+
     try {
-      const response = await fetch(`${server.url}/api/privacy`)
+      const response = await fetch(apiUrl)
       if (response.ok) {
-        const text = await response.text()
-        if (text.trim()) {
-          setPrivacyContent(text)
+        const data = await response.json()
+        if (data.content) {
+          setPrivacyContent(data.content)
           setViewState('privacy')
           setConnecting(false)
           return

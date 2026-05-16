@@ -121,4 +121,25 @@ src/
 
 ---
 
+## AI 协作致谢
+
+本项目开发过程中得到了以下 AI 平台及模型的帮助：
+
+### AI 平台
+- **Z.ai** — 智谱 AI 开发平台，完成了本项目的从0构建
+- **Trae CN** — 字节跳动 Trae 国内版，主要完成了本项目的继续维护
+- **Trae SOLO** — 字节跳动 Trae 单智能体模式，可以出门在外开发
+- **Qoder** — 阿里巴巴 Qoder 开发平台，完成了本项目知识库
+
+
+### 主要模型
+- **GLM5 Turbo / GLM5.1** — 智谱
+- **Doubao Seed2.0** — 字节跳动豆包
+- **DeepSeekV4 Pro** — 深度求索
+- **Kimi k2.5 / Kimi k2.6** — 月之暗面
+
+> 🚀 **支持国产模型**
+
+---
+
 © 2025 QuickMovie by RATE TEAM. All Rights Reserved.

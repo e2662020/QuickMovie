@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAppStore } from '@/lib/store'
+import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -49,7 +50,7 @@ export function InviteView() {
     setTeamInfo(null)
     setLookupLoading(true)
     try {
-      const res = await fetch(`/api/teams/lookup?code=${encodeURIComponent(codeToLookup.trim())}`)
+      const res = await apiFetch(`/api/teams/lookup?code=${encodeURIComponent(codeToLookup.trim())}`)
       const data = await res.json()
       if (!res.ok) {
         setLookupError(data.error || '查询失败')
@@ -73,7 +74,7 @@ export function InviteView() {
 
     setJoinLoading(true)
     try {
-      const res = await fetch('/api/teams/join', {
+      const res = await apiFetch('/api/teams/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ inviteCode: code.trim() }),
@@ -88,7 +89,7 @@ export function InviteView() {
 
       toast.success(`成功加入「${data.team.name}」！`)
 
-      const teamsRes = await fetch('/api/teams')
+      const teamsRes = await apiFetch('/api/teams')
       if (teamsRes.ok) {
         const teamsData = await teamsRes.json()
         setTeams(teamsData.teams || [])

@@ -1,14 +1,16 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useAppStore, type Team, type DirectorBoard } from '@/lib/store'
+import { useAppStore, type Team, type DirectorBoard, getPersonalTeam, PERSONAL_TEAM_ID, loadPersonalBoards, savePersonalBoards, type SavedServer, loadSavedServers } from '@/lib/store'
+import { apiFetch } from '@/lib/api'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useAppMode } from '@/hooks/use-app-mode'
+import { DEFAULT_SERVER, IS_DEV, IS_DEV_VERSION } from '@/lib/env'
 import { OfflineIndicator } from '@/components/offline-indicator'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -22,6 +24,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
@@ -67,6 +72,7 @@ import {
   Loader2,
   Menu,
   LayoutDashboard,
+  Server,
   Crown,
   Shield,
   Eye,
@@ -75,6 +81,8 @@ import {
   Sun,
   Moon,
   WifiOff,
+  AlertTriangle,
+  Circle,
 } from 'lucide-react'
 import { IconPicker, IconDisplay } from '@/components/icon-picker'
 
@@ -130,10 +138,43 @@ export function DashboardView() {
     darkMode,
     setDarkMode,
     pageBg,
+    serverConfig,
+    savedServers,
+    switchServer,
+    disconnectServer,
+    connectServer,
+    setAppMode,
   } = useAppStore()
 
   const isMobile = useIsMobile()
-  const { isOffline } = useAppMode()
+  const { isOffline, isRemote } = useAppMode()
+
+  // Get preset servers list
+  const getPresetServers = (): { name: string; url: string }[] => {
+    const presets: { name: string; url: string }[] = []
+    // Always show local dev server in client/dev mode
+    if (IS_DEV_VERSION || IS_DEV) {
+      presets.push({ name: '本地开发', url: 'http://localhost:3001' })
+    }
+    // Add servers from environment config
+    if (DEFAULT_SERVER) {
+      const entries = DEFAULT_SERVER.split(',').map((s) => s.trim()).filter(Boolean)
+      for (const entry of entries) {
+        const parts = entry.split('|')
+        if (parts.length >= 2) {
+          const name = parts[0].trim()
+          const url = parts.slice(1).join('|').trim()
+          if (name && url) {
+            // Avoid duplicates
+            if (!presets.find(p => p.url === url)) {
+              presets.push({ name, url })
+            }
+          }
+        }
+      }
+    }
+    return presets
+  }
 
   // ── Local State ──
   const [loading, setLoading] = useState(true)
@@ -149,6 +190,12 @@ export function DashboardView() {
   const [deleteBoardOpen, setDeleteBoardOpen] = useState(false)
   const [manageMembersOpen, setManageMembersOpen] = useState(false)
   const [inviteLinkOpen, setInviteLinkOpen] = useState(false)
+  const [showAddServer, setShowAddServer] = useState(false)
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false)
+
+  // Add server form
+  const [newServerUrl, setNewServerUrl] = useState('')
+  const [newServerName, setNewServerName] = useState('')
 
   // Form values
   const [newTeamName, setNewTeamName] = useState('')
@@ -197,7 +244,7 @@ export function DashboardView() {
   // ── API: Load Teams ──
   const loadTeams = useCallback(async () => {
     try {
-      const res = await fetch('/api/teams')
+      const res = await apiFetch('/api/teams')
       if (res.ok) {
         const data = await res.json()
         setTeams(data.teams ?? [])
@@ -211,7 +258,7 @@ export function DashboardView() {
   const loadBoards = useCallback(async (teamId: string) => {
     setBoardsLoading(true)
     try {
-      const res = await fetch(`/api/boards?teamId=${encodeURIComponent(teamId)}`)
+      const res = await apiFetch(`/api/boards?teamId=${encodeURIComponent(teamId)}`)
       if (res.ok) {
         const data = await res.json()
         setBoards(data.boards ?? [])
@@ -227,7 +274,7 @@ export function DashboardView() {
   const loadMembers = useCallback(async (teamId: string) => {
     setMembersLoading(true)
     try {
-      const res = await fetch(`/api/teams/join?teamId=${encodeURIComponent(teamId)}`)
+      const res = await apiFetch(`/api/teams/join?teamId=${encodeURIComponent(teamId)}`)
       if (res.ok) {
         const data = await res.json()
         setMembers(data.members ?? [])
@@ -243,23 +290,40 @@ export function DashboardView() {
   useEffect(() => {
     const init = async () => {
       setLoading(true)
+      
+      // Fix: Ensure appMode is correct when user is logged in with server config
+      if (user && serverConfig && serverConfig.connectionStatus === 'connected') {
+        setAppMode('remote')
+      }
+      
       await loadTeams()
       setLoading(false)
     }
     init()
-  }, [loadTeams])
+  }, [loadTeams, user, serverConfig, setAppMode])
 
   // Auto-select first team if none selected
   useEffect(() => {
-    if (!currentTeam && teams.length > 0) {
-      setCurrentTeam(teams[0])
+    if (!currentTeam) {
+      if (isOffline) {
+        // Offline mode: always show personal team
+        setCurrentTeam(getPersonalTeam(user?.name))
+      } else if (teams.length > 0) {
+        setCurrentTeam(teams[0])
+      }
     }
-  }, [teams, currentTeam, setCurrentTeam])
+  }, [teams, currentTeam, setCurrentTeam, isOffline, user?.name])
 
   // Load boards when team changes
   useEffect(() => {
     if (currentTeam) {
-      loadBoards(currentTeam.id)
+      if (currentTeam.isPersonal) {
+        // Personal team: load from localStorage
+        const personalBoards = loadPersonalBoards()
+        setBoards(personalBoards)
+      } else {
+        loadBoards(currentTeam.id)
+      }
     } else {
       setBoards([])
     }
@@ -274,6 +338,12 @@ export function DashboardView() {
       root.classList.remove('dark')
     }
   }, [pageBg, darkMode])
+
+  useEffect(() => {
+    const handleOpenAddServer = () => setShowAddServer(true)
+    document.addEventListener('open-add-server-dialog', handleOpenAddServer)
+    return () => document.removeEventListener('open-add-server-dialog', handleOpenAddServer)
+  }, [])
 
   const handleToggleDarkMode = useCallback(() => {
     setDarkMode(!darkMode)
@@ -295,7 +365,7 @@ export function DashboardView() {
     }
     setSubmitting(true)
     try {
-      const res = await fetch('/api/teams', {
+      const res = await apiFetch('/api/teams', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: newTeamName.trim(), icon: newTeamIcon }),
@@ -330,7 +400,7 @@ export function DashboardView() {
     }
     setSubmitting(true)
     try {
-      const res = await fetch('/api/teams', {
+      const res = await apiFetch('/api/teams', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ teamId: currentTeam.id, name: renameTeamName.trim(), icon: renameTeamIcon }),
@@ -359,7 +429,7 @@ export function DashboardView() {
     if (!currentTeam) return
     setSubmitting(true)
     try {
-      const res = await fetch(`/api/teams?teamId=${encodeURIComponent(currentTeam.id)}`, {
+      const res = await apiFetch(`/api/teams?teamId=${encodeURIComponent(currentTeam.id)}`, {
         method: 'DELETE',
       })
       const data = await res.json()
@@ -387,24 +457,46 @@ export function DashboardView() {
     }
     setSubmitting(true)
     try {
-      const res = await fetch('/api/boards', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newBoardName.trim(), teamId: currentTeam.id }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        toast.error(data.error || '创建导演板失败')
-        return
-      }
-      toast.success('导演板创建成功')
-      setCreateBoardOpen(false)
-      setNewBoardName('')
-      await loadBoards(currentTeam.id)
-      // Open the new board
-      if (data.board) {
-        setCurrentBoard(data.board)
+      if (currentTeam.isPersonal) {
+        // Personal team: create board locally in localStorage
+        const newBoard: DirectorBoard = {
+          id: `personal-${Date.now()}`,
+          name: newBoardName.trim(),
+          teamId: PERSONAL_TEAM_ID,
+          createdBy: user?.id || 'local',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+        const currentBoards = loadPersonalBoards()
+        const updatedBoards = [...currentBoards, newBoard]
+        savePersonalBoards(updatedBoards)
+        setBoards(updatedBoards)
+        toast.success('导演板创建成功')
+        setCreateBoardOpen(false)
+        setNewBoardName('')
+        setCurrentBoard(newBoard)
         setView('board')
+      } else {
+        // Online team: create via API
+        const res = await apiFetch('/api/boards', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newBoardName.trim(), teamId: currentTeam.id }),
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          toast.error(data.error || '创建导演板失败')
+          return
+        }
+        toast.success('导演板创建成功')
+        setCreateBoardOpen(false)
+        setNewBoardName('')
+        await loadBoards(currentTeam.id)
+        // Open the new board
+        if (data.board) {
+          setCurrentBoard(data.board)
+          setView('board')
+        }
       }
     } catch {
       toast.error('网络错误，请稍后重试')
@@ -421,7 +513,7 @@ export function DashboardView() {
     }
     setSubmitting(true)
     try {
-      const res = await fetch('/api/boards', {
+      const res = await apiFetch('/api/boards', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ boardId: targetBoard.id, name: renameBoardName.trim() }),
@@ -450,20 +542,27 @@ export function DashboardView() {
     if (!targetBoard) return
     setSubmitting(true)
     try {
-      const res = await fetch(`/api/boards?boardId=${encodeURIComponent(targetBoard.id)}`, {
-        method: 'DELETE',
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        toast.error(data.error || '删除导演板失败')
-        return
+      if (currentTeam?.isPersonal) {
+        // Personal team: delete from localStorage
+        const currentBoards = loadPersonalBoards()
+        const updatedBoards = currentBoards.filter(b => b.id !== targetBoard.id)
+        savePersonalBoards(updatedBoards)
+        setBoards(updatedBoards)
+        toast.success('导演板已删除')
+      } else {
+        // Online team: delete via API
+        const res = await apiFetch(`/api/boards?boardId=${encodeURIComponent(targetBoard.id)}`, {
+          method: 'DELETE',
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          toast.error(data.error || '删除导演板失败')
+          return
+        }
+        toast.success('导演板已删除')
       }
-      toast.success('导演板已删除')
       setDeleteBoardOpen(false)
       setTargetBoard(null)
-      if (currentTeam) {
-        await loadBoards(currentTeam.id)
-      }
     } catch {
       toast.error('网络错误，请稍后重试')
     } finally {
@@ -506,7 +605,7 @@ export function DashboardView() {
   const handleUpdateRole = async (userId: string, role: string) => {
     if (!currentTeam) return
     try {
-      const res = await fetch('/api/teams/join', {
+      const res = await apiFetch('/api/teams/join', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ teamId: currentTeam.id, userId, role }),
@@ -527,7 +626,7 @@ export function DashboardView() {
   const handleRemoveMember = async (userId: string) => {
     if (!currentTeam) return
     try {
-      const res = await fetch(
+      const res = await apiFetch(
         `/api/teams/join?teamId=${encodeURIComponent(currentTeam.id)}&userId=${encodeURIComponent(userId)}`,
         { method: 'DELETE' }
       )
@@ -553,13 +652,58 @@ export function DashboardView() {
   // Logout
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' })
+      await apiFetch('/api/auth/logout', { method: 'POST' })
     } catch {
       // Ignore
     }
     reset()
     setView('landing')
     toast.success('已退出登录')
+  }
+
+  const handleSwitchServer = async (server: SavedServer) => {
+    if (serverConfig?.serverUrl === server.url) return
+
+    try {
+      await switchServer(server.id)
+      toast.success(`已切换到 ${server.name}`)
+    } catch (error) {
+      toast.error('切换服务器失败，请重试')
+    }
+  }
+
+  const handleDisconnectServer = () => {
+    disconnectServer()
+    toast.success('已断开连接，进入离线模式')
+  }
+
+  const handleAddServer = async () => {
+    if (!newServerUrl.trim()) {
+      toast.error('请输入服务器地址')
+      return
+    }
+
+    const url = newServerUrl.trim().replace(/\/+$/, '')
+    const name = newServerName.trim() || url
+
+    try {
+      await connectServer(url, name)
+      setShowAddServer(false)
+      setNewServerUrl('')
+      setNewServerName('')
+      toast.success(`已连接到 ${name}`)
+    } catch (error) {
+      toast.error('连接服务器失败，请检查地址')
+    }
+  }
+
+  const handleAddPresetServer = async (preset: { name: string; url: string }) => {
+    try {
+      await connectServer(preset.url, preset.name)
+      toast.success(`已连接到 ${preset.name}`)
+    } catch (error) {
+      toast.error('连接服务器失败，请检查地址')
+    }
   }
 
   // ── Open rename dialogs ──
@@ -604,7 +748,8 @@ export function DashboardView() {
 
       <Separator />
 
-      {/* Create Team */}
+      {/* Create Team - hidden in offline mode */}
+      {!isOffline && (
       <div className="px-3 pt-3">
         <Button
           variant="outline"
@@ -619,10 +764,27 @@ export function DashboardView() {
           创建团队
         </Button>
       </div>
+      )}
 
       {/* Team List */}
       <ScrollArea className="flex-1 px-3 py-2">
         <div className="space-y-1">
+          {isOffline && (
+            <button
+              onClick={() => handleSelectTeam(getPersonalTeam(user?.name))}
+              className={`flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-accent ${
+                currentTeam?.id === PERSONAL_TEAM_ID
+                  ? 'bg-accent text-accent-foreground font-medium'
+                  : 'text-muted-foreground'
+              }`}
+            >
+              <span className="text-lg">🎬</span>
+              <span className="flex-1 truncate">个人工作区</span>
+              <Badge variant="secondary" className="ml-auto h-5 px-1.5 text-[10px]">
+                个人
+              </Badge>
+            </button>
+          )}
           {teams.map((team) => (
             <button
               key={team.id}
@@ -677,7 +839,7 @@ export function DashboardView() {
                 variant="ghost"
                 size="sm"
                 className="w-full justify-start gap-2 text-muted-foreground"
-                onClick={handleCopyCode}
+                onClick={handleCopyInvite}
               >
                 {copied ? (
                   <Check className="h-4 w-4 text-green-500" />
@@ -692,6 +854,7 @@ export function DashboardView() {
 
         <Separator />
 
+        {!isOffline && (
         <div className="flex items-center gap-3 px-4 py-3">
           <Avatar className="h-8 w-8">
             <AvatarFallback className="text-xs">
@@ -711,6 +874,7 @@ export function DashboardView() {
             <LogOut className="h-4 w-4" />
           </Button>
         </div>
+        )}
       </div>
     </div>
   )
@@ -752,138 +916,233 @@ export function DashboardView() {
           <h1 className="text-lg font-semibold">选择一个团队</h1>
         )}
 
-        <div className="ml-auto flex items-center gap-2">
-          {/* Offline indicator */}
-          <OfflineIndicator />
+        <div className="ml-auto flex items-center gap-1">
+          {/* Wide screen: individual icon buttons */}
+          <div className="hidden lg:flex items-center gap-1">
+            <OfflineIndicator />
 
-          {/* Dark mode toggle */}
-          <TooltipProvider delayDuration={300}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9"
-                  onClick={handleToggleDarkMode}
-                >
-                  {darkMode || pageBg === 'black' ? (
-                    <Sun className="h-4 w-4 text-amber-400" />
-                  ) : (
-                    <Moon className="h-4 w-4" />
-                  )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9" title={isOffline ? "连接服务器" : "服务器管理"}>
+                  <Server className={`h-4 w-4 ${isOffline ? 'text-orange-500' : ''}`} />
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {darkMode || pageBg === 'black' ? '切换浅色模式' : '切换深色模式'}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-72 max-h-[400px] overflow-y-auto">
+                {(() => {
+                  const presets = getPresetServers()
+                  return presets.length > 0 ? (
+                    <>
+                      <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">预设服务器</div>
+                      {presets.map((preset) => (
+                        <DropdownMenuItem key={preset.url} onClick={() => handleAddPresetServer(preset)} className={`gap-2 ${serverConfig?.serverUrl === preset.url ? 'bg-accent' : ''}`}>
+                          <Server className="h-4 w-4 text-primary" />
+                          <div className="flex-1 min-w-0">
+                            <p className="truncate text-sm">{preset.name}</p>
+                            <p className="truncate text-xs text-muted-foreground">{preset.url}</p>
+                          </div>
+                          {serverConfig?.serverUrl === preset.url && <Check className="h-4 w-4 text-primary flex-shrink-0" />}
+                        </DropdownMenuItem>
+                      ))}
+                      {(savedServers.length > 0 || !isOffline) && <DropdownMenuSeparator />}
+                    </>
+                  ) : null
+                })()}
+                {savedServers.length > 0 && (
+                  <>
+                    <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">已保存的服务器</div>
+                    {savedServers.map((server) => (
+                      <DropdownMenuItem key={server.id} onClick={() => handleSwitchServer(server)} className={`gap-2 ${serverConfig?.serverUrl === server.url ? 'bg-accent' : ''}`}>
+                        <Server className="h-4 w-4" />
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate text-sm">{server.name}</p>
+                          <p className="truncate text-xs text-muted-foreground">{server.url}</p>
+                        </div>
+                        {server.isLastUsed && <Badge variant="secondary" className="ml-auto h-5 px-1.5 text-[10px] flex-shrink-0">当前</Badge>}
+                      </DropdownMenuItem>
+                    ))}
+                    {!isOffline && <DropdownMenuSeparator />}
+                  </>
+                )}
+                <DropdownMenuItem onClick={() => setShowAddServer(true)}>
+                  <Plus className="h-4 w-4" /> 添加自定义服务器
+                </DropdownMenuItem>
+                {!isOffline && serverConfig && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setShowDisconnectConfirm(true)} className="gap-2 text-destructive focus:text-destructive">
+                      <LogOut className="h-4 w-4" /> 断开连接（离线模式）
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-          {/* Manage team dropdown */}
-          {currentTeam && canManageTeam && (
             <TooltipProvider delayDuration={300}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="inline-flex">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className={`gap-2 ${isOffline ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          disabled={isOffline}
-                        >
-                          <Users className="h-4 w-4" />
-                          <span className="hidden sm:inline">团队成员</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      {!isOffline && (
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={openRenameTeam} className="gap-2">
-                            <Edit className="h-4 w-4" />
-                            重命名团队
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={openManageMembers} className="gap-2">
-                            <Users className="h-4 w-4" />
-                            管理成员
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setInviteLinkOpen(true)} className="gap-2">
-                            <Copy className="h-4 w-4" />
-                            邀请链接
-                          </DropdownMenuItem>
-                          {isTeamOwner && (
-                            <>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => setDeleteTeamOpen(true)}
-                                className="gap-2 text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                                删除团队
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      )}
-                    </DropdownMenu>
-                  </span>
+                  <Button variant="ghost" size="icon" className="h-9 w-9" onClick={handleToggleDarkMode}>
+                    {darkMode || pageBg === 'black' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4" />}
+                  </Button>
                 </TooltipTrigger>
-                {isOffline && (
-                  <TooltipContent>协作功能需要连接到服务器</TooltipContent>
-                )}
+                <TooltipContent>{darkMode || pageBg === 'black' ? '切换浅色模式' : '切换深色模式'}</TooltipContent>
               </Tooltip>
             </TooltipProvider>
-          )}
 
-          {/* Non-owners can still see members */}
-          {currentTeam && !canManageTeam && (
-            <TooltipProvider delayDuration={300}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="inline-flex">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className={`gap-2 ${isOffline ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          disabled={isOffline}
-                        >
-                          <Users className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      {!isOffline && (
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={openManageMembers} className="gap-2">
+            {currentTeam && canManageTeam && (
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className={`h-9 w-9 ${isOffline ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={isOffline}>
                             <Users className="h-4 w-4" />
-                            查看成员
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setInviteLinkOpen(true)} className="gap-2">
-                            <Copy className="h-4 w-4" />
-                            邀请链接
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      )}
-                    </DropdownMenu>
-                  </span>
-                </TooltipTrigger>
-                {isOffline && (
-                  <TooltipContent>协作功能需要连接到服务器</TooltipContent>
-                )}
-              </Tooltip>
-            </TooltipProvider>
-          )}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        {!isOffline && !currentTeam?.isPersonal && (
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={openRenameTeam} className="gap-2"><Edit className="h-4 w-4" /> 重命名团队</DropdownMenuItem>
+                            <DropdownMenuItem onClick={openManageMembers} className="gap-2"><Users className="h-4 w-4" /> 管理成员</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setInviteLinkOpen(true)} className="gap-2"><Copy className="h-4 w-4" /> 邀请链接</DropdownMenuItem>
+                            {isTeamOwner && (<><DropdownMenuSeparator /><DropdownMenuItem onClick={() => setDeleteTeamOpen(true)} className="gap-2 text-destructive focus:text-destructive"><Trash2 className="h-4 w-4" /> 删除团队</DropdownMenuItem></>)}
+                          </DropdownMenuContent>
+                        )}
+                      </DropdownMenu>
+                    </span>
+                  </TooltipTrigger>
+                  {isOffline && <TooltipContent>协作功能需要连接到服务器</TooltipContent>}
+                </Tooltip>
+              </TooltipProvider>
+            )}
 
-          {/* Create Board */}
-          {currentTeam && canCreateBoard && (
-            <Button size="sm" className="gap-2" onClick={() => {
-              setNewBoardName('')
-              setCreateBoardOpen(true)
-            }}>
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">新建导演板</span>
-            </Button>
-          )}
+            {currentTeam && !canManageTeam && (
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className={`h-9 w-9 ${isOffline ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={isOffline}>
+                            <Users className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        {!isOffline && (
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={openManageMembers} className="gap-2"><Users className="h-4 w-4" /> 查看成员</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setInviteLinkOpen(true)} className="gap-2"><Copy className="h-4 w-4" /> 邀请链接</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        )}
+                      </DropdownMenu>
+                    </span>
+                  </TooltipTrigger>
+                  {isOffline && <TooltipContent>协作功能需要连接到服务器</TooltipContent>}
+                </Tooltip>
+              </TooltipProvider>
+            )}
+
+            {currentTeam && canCreateBoard && (
+              <Button size="icon" variant="default" className="h-9 w-9" onClick={() => {
+                setNewBoardName('')
+                setCreateBoardOpen(true)
+              }} title="新建导演板">
+                <Plus className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+
+          {/* Narrow screen / mobile: consolidated menu */}
+          <div className="lg:hidden flex items-center gap-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9 relative">
+                  <span className={`absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full ${isOffline ? 'bg-muted-foreground/40' : isRemote ? 'bg-green-500' : 'bg-destructive'}`} />
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={() => document.dispatchEvent(new CustomEvent('open-status-dialog'))} className="gap-2">
+                  {isOffline ? <WifiOff className="h-4 w-4 text-orange-500" /> : isRemote ? <Circle className="h-3 w-3 fill-green-500 text-green-500" /> : <AlertTriangle className="h-4 w-4 text-destructive" />}
+                  <span>{isOffline ? '离线模式' : isRemote ? (serverConfig?.serverName || '已连接') : '连接断开'}</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="gap-2">
+                    <Server className="h-4 w-4" /><span>服务器管理</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="w-64">
+                    {getPresetServers().length > 0 && (
+                      <>
+                        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">预设服务器</div>
+                        {getPresetServers().map((preset) => (
+                          <DropdownMenuItem key={preset.url} onClick={() => handleAddPresetServer(preset)} className="gap-2">
+                            <Server className="h-4 w-4 text-primary" />
+                            <div className="flex-1 min-w-0"><p className="truncate text-sm">{preset.name}</p><p className="text-xs text-muted-foreground truncate">{preset.url}</p></div>
+                            {serverConfig?.serverUrl === preset.url && <Check className="h-4 w-4 text-primary" />}
+                          </DropdownMenuItem>
+                        ))}
+                        {savedServers.length > 0 && <DropdownMenuSeparator />}
+                      </>
+                    )}
+                    {savedServers.length > 0 && (
+                      <>
+                        <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground">已保存的服务器</div>
+                        {savedServers.map((server) => (
+                          <DropdownMenuItem key={server.id} onClick={() => handleSwitchServer(server)} className="gap-2">
+                            <Server className="h-4 w-4" />
+                            <div className="flex-1 min-w-0"><p className="truncate text-sm">{server.name}</p><p className="text-xs text-muted-foreground truncate">{server.url}</p></div>
+                            {server.isLastUsed && <Badge variant="secondary" className="ml-auto h-5 px-1.5 text-[10px]">当前</Badge>}
+                          </DropdownMenuItem>
+                        ))}
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    <DropdownMenuItem onClick={() => setShowAddServer(true)} className="gap-2"><Plus className="h-4 w-4" /> 添加自定义服务器</DropdownMenuItem>
+                    {!isOffline && serverConfig && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => setShowDisconnectConfirm(true)} className="gap-2 text-destructive focus:text-destructive"><LogOut className="h-4 w-4" /> 断开连接</DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem onClick={handleToggleDarkMode} className="gap-2">
+                  {darkMode || pageBg === 'black' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4" />}
+                  <span>{darkMode || pageBg === 'black' ? '浅色模式' : '深色模式'}</span>
+                </DropdownMenuItem>
+
+                {currentTeam && !currentTeam.isPersonal && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger className="gap-2">
+                        <Users className="h-4 w-4" /><span>团队</span>
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent className="w-44">
+                        {canManageTeam && <DropdownMenuItem onClick={openRenameTeam} className="gap-2"><Edit className="h-4 w-4" /> 重命名团队</DropdownMenuItem>}
+                        <DropdownMenuItem onClick={openManageMembers} className="gap-2"><Users className="h-4 w-4" /> {canManageTeam ? '管理成员' : '查看成员'}</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setInviteLinkOpen(true)} className="gap-2"><Copy className="h-4 w-4" /> 邀请链接</DropdownMenuItem>
+                        {canManageTeam && isTeamOwner && (<><DropdownMenuSeparator /><DropdownMenuItem onClick={() => setDeleteTeamOpen(true)} className="gap-2 text-destructive focus:text-destructive"><Trash2 className="h-4 w-4" /> 删除团队</DropdownMenuItem></>)}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                  </>
+                )}
+
+                {currentTeam && canCreateBoard && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => { setNewBoardName(''); setCreateBoardOpen(true) }} className="gap-2">
+                      <Plus className="h-4 w-4" /><span>新建导演板</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </header>
 
@@ -898,8 +1157,9 @@ export function DashboardView() {
               </div>
               <h2 className="mb-2 text-xl font-semibold">欢迎使用快分镜</h2>
               <p className="mb-6 max-w-sm text-sm text-muted-foreground">
-                创建或选择一个团队开始你的分镜创作之旅
+                {isOffline ? '个人工作区 - 在离线模式下管理你的导演板' : '创建或选择一个团队开始你的分镜创作之旅'}
               </p>
+              {!isOffline && (
               <Button onClick={() => {
                 setNewTeamName('')
                 setNewTeamIcon('🎬')
@@ -908,6 +1168,13 @@ export function DashboardView() {
                 <Plus className="mr-2 h-4 w-4" />
                 创建团队
               </Button>
+              )}
+              {isOffline && (
+                <Button onClick={() => setCurrentTeam(getPersonalTeam(user?.name))}>
+                  <Film className="mr-2 h-4 w-4" />
+                  进入个人工作区
+                </Button>
+              )}
             </div>
           </div>
         ) : boardsLoading ? (
@@ -1052,6 +1319,116 @@ export function DashboardView() {
       {mainContent}
 
       {/* ─── Dialogs ─── */}
+
+      {/* Add Server Dialog */}
+      <Dialog open={showAddServer} onOpenChange={setShowAddServer}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>添加服务器</DialogTitle>
+            <DialogDescription>选择预设服务器或输入自定义地址</DialogDescription>
+          </DialogHeader>
+
+          {/* Preset Servers */}
+          {(() => {
+            const presets = getPresetServers()
+
+            return presets.length > 0 ? (
+              <div className="space-y-1.5 py-2">
+                <Label className="text-xs font-medium text-muted-foreground">预设服务器</Label>
+                <div className="grid gap-1.5">
+                  {presets.map((preset) => (
+                    <div
+                      key={preset.url}
+                      className={`flex items-center gap-3 rounded-lg border p-2.5 cursor-pointer transition-colors hover:bg-accent ${
+                        newServerUrl === preset.url ? 'border-primary bg-accent' : ''
+                      }`}
+                      onClick={() => {
+                        setNewServerUrl(preset.url)
+                        setNewServerName(preset.name)
+                      }}
+                    >
+                      <Server className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium leading-tight">{preset.name}</p>
+                        <p className="text-xs text-muted-foreground truncate leading-tight">{preset.url}</p>
+                      </div>
+                      {newServerUrl === preset.url && (
+                        <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null
+          })()}
+
+          <Separator />
+
+          {/* Custom Server Input */}
+          <div className="space-y-4 py-2">
+            <Label className="text-xs font-medium text-muted-foreground">自定义服务器</Label>
+            <div className="space-y-2">
+              <Label htmlFor="server-url">服务器地址 *</Label>
+              <Input
+                id="server-url"
+                placeholder="http://localhost:3000 或 https://your-server.com"
+                value={newServerUrl}
+                onChange={(e) => setNewServerUrl(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddServer()}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="server-name">服务器名称（可选）</Label>
+              <Input
+                id="server-name"
+                placeholder="我的团队服务器"
+                value={newServerName}
+                onChange={(e) => setNewServerName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddServer()}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddServer(false)}>
+              取消
+            </Button>
+            <Button onClick={handleAddServer} disabled={!newServerUrl.trim()}>
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              连接服务器
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Disconnect Confirm Dialog */}
+      <Dialog open={showDisconnectConfirm} onOpenChange={setShowDisconnectConfirm}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LogOut className="h-5 w-5 text-destructive" />
+              断开服务器连接
+            </DialogTitle>
+            <DialogDescription>
+              确定要断开当前服务器连接吗？断开后将进入离线模式，只能查看本地保存的内容。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-3">
+            <Button variant="outline" onClick={() => setShowDisconnectConfirm(false)}>
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setShowDisconnectConfirm(false)
+                handleDisconnectServer()
+              }}
+            >
+              确认断开
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Team Dialog */}
       <Dialog open={createTeamOpen} onOpenChange={setCreateTeamOpen}>

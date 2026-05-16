@@ -3,7 +3,7 @@ import { getDb } from '../db.js'
 
 const router = Router()
 
-router.get('/api/site-config', (req, res) => {
+router.get('/site-config', (req, res) => {
   const db = getDb()
   const rows = db.prepare("SELECT key, value FROM settings WHERE key LIKE 'brand_%'").all() as any[]
   const config: Record<string, string> = {}

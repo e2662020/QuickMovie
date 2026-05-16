@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useAppStore, type StoryElement } from '@/lib/store'
+import { apiFetch } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -1081,7 +1082,7 @@ export function ScriptEditor() {
 
       setSaving(true)
       try {
-        const res = await fetch('/api/boards/files', {
+        const res = await apiFetch('/api/boards/files', {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',

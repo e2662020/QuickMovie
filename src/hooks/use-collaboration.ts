@@ -57,7 +57,9 @@ export function useCollaboration(documentId: string) {
     ws.onclose = () => setIsConnected(false)
 
     return () => {
-      ws.send(JSON.stringify({ type: 'leave' }))
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'leave' }))
+      }
       ws.close()
     }
   }, [serverConfig?.serverUrl, documentId, user?.id])

@@ -1,114 +1,192 @@
 {
   "teams": [
     {
-      "id": "team-mp6x36jpsxzcki",
-      "name": "RATE",
-      "icon": "/uploads/mp6x34aa4aom11.png",
-      "inviteCode": "MP6X36JP",
+      "id": "team-mp8bfvg5cezny2",
+      "name": "111",
+      "icon": "🎬",
+      "inviteCode": "MP8BFVG5",
       "ownerId": "user-001"
     }
   ],
   "teamMembers": {
-    "team-mp6x36jpsxzcki": [
+    "team-mp8bfvg5cezny2": [
       {
         "userId": "user-001",
         "name": "管理员",
         "email": "admin@quickmovie.cn",
         "role": "owner",
-        "joinedAt": "2026-05-15T12:52:21.349Z"
+        "joinedAt": "2026-05-16T12:21:54.293Z"
       }
     ]
   },
   "boards": [
     {
-      "id": "board-mp6yphynsp7lmc",
+      "id": "board-mp8dmf0prt1kif",
       "name": "111",
-      "teamId": "team-mp6x36jpsxzcki",
+      "teamId": "team-mp8bfvg5cezny2",
       "createdBy": "user-001",
-      "createdAt": "2026-05-15T13:37:42.191Z",
-      "updatedAt": "2026-05-15T13:37:42.191Z"
+      "createdAt": "2026-05-16T13:22:58.826Z",
+      "updatedAt": "2026-05-16T13:22:58.826Z"
     }
   ],
   "boardFiles": [
     {
-      "id": "file-mp6ypm5r0i1tc5",
-      "boardId": "board-mp6yphynsp7lmc",
-      "parentId": null,
-      "name": "未命名策划案",
-      "type": "planning",
-      "content": "{\"title\":\"1·11\",\"format\":\"电影\",\"genre\":\"\",\"duration\":\"\",\"targetAudience\":\"\",\"logline\":\"\",\"synopsis\":\"\",\"themes\":[],\"keywords\":[],\"references\":[],\"notes\":\"\"}",
-      "sortOrder": 0,
-      "createdAt": "2026-05-15T13:37:47.631Z",
-      "updatedAt": "2026-05-15T13:53:27.718Z"
-    },
-    {
-      "id": "file-mp6yqz9juvw5wg",
-      "boardId": "board-mp6yphynsp7lmc",
+      "id": "file-mp8dmjr1l4xvj8",
+      "boardId": "board-mp8dmf0prt1kif",
       "parentId": null,
       "name": "未命名剧本",
       "type": "script",
-      "content": "{\"title\":\"\",\"writer\":\"\",\"version\":\"第一稿\",\"blocks\":[{\"id\":\"default-2\",\"type\":\"action\",\"content\":\"在这里开始写作你的剧本...\"},{\"id\":\"blk-1778853100212-3olb9f\",\"type\":\"scene_heading\",\"content\":\"场景111\"},{\"id\":\"blk-1778853173300-gxeoa3\",\"type\":\"scene_heading\",\"content\":\"场景 - 内景/111111外景 - 时间111\"},{\"id\":\"blk-1778853891095-8yph3x\",\"type\":\"scene_heading\",\"content\":\"场景 - 内景/外景 - 时间\"}]}",
-      "sortOrder": 1,
-      "createdAt": "2026-05-15T13:38:51.271Z",
-      "updatedAt": "2026-05-15T14:10:32.888Z"
+      "content": "",
+      "sortOrder": 0,
+      "createdAt": "2026-05-16T13:23:04.957Z",
+      "updatedAt": "2026-05-16T13:23:04.957Z"
     },
     {
-      "id": "file-mp6zwzs7aeum9f",
-      "boardId": "board-mp6yphynsp7lmc",
+      "id": "file-mp8dmoebzjv25c",
+      "boardId": "board-mp8dmf0prt1kif",
       "parentId": null,
-      "name": "未命名故事板",
-      "type": "storyboard",
+      "name": "未命名剧本",
+      "type": "script",
+      "content": "",
+      "sortOrder": 1,
+      "createdAt": "2026-05-16T13:23:10.979Z",
+      "updatedAt": "2026-05-16T13:23:10.979Z"
+    },
+    {
+      "id": "file-mp8dmr8le7697i",
+      "boardId": "board-mp8dmf0prt1kif",
+      "parentId": null,
+      "name": "未命名剧本",
+      "type": "script",
       "content": "",
       "sortOrder": 2,
-      "createdAt": "2026-05-15T14:11:31.495Z",
-      "updatedAt": "2026-05-15T14:11:31.495Z"
+      "createdAt": "2026-05-16T13:23:14.661Z",
+      "updatedAt": "2026-05-16T13:23:14.661Z"
+    },
+    {
+      "id": "file-mp8dmxnxxhio16",
+      "boardId": "board-mp8dmf0prt1kif",
+      "parentId": null,
+      "name": "未命名剧本",
+      "type": "script",
+      "content": "",
+      "sortOrder": 3,
+      "createdAt": "2026-05-16T13:23:22.989Z",
+      "updatedAt": "2026-05-16T13:23:22.989Z"
+    },
+    {
+      "id": "file-mp8dnv2qxb2xm0",
+      "boardId": "board-mp8dmf0prt1kif",
+      "parentId": null,
+      "name": "未命名策划案",
+      "type": "planning",
+      "content": "",
+      "sortOrder": 4,
+      "createdAt": "2026-05-16T13:24:06.290Z",
+      "updatedAt": "2026-05-16T13:24:06.290Z"
+    },
+    {
+      "id": "file-mp8docn2iqjkpe",
+      "boardId": "board-mp8dmf0prt1kif",
+      "parentId": null,
+      "name": "未命名策划案",
+      "type": "planning",
+      "content": "",
+      "sortOrder": 5,
+      "createdAt": "2026-05-16T13:24:29.054Z",
+      "updatedAt": "2026-05-16T13:24:29.054Z"
+    },
+    {
+      "id": "file-mp8dss1q9o1lvo",
+      "boardId": "board-mp8dmf0prt1kif",
+      "parentId": null,
+      "name": "未命名策划案",
+      "type": "planning",
+      "content": "",
+      "sortOrder": 6,
+      "createdAt": "2026-05-16T13:27:55.646Z",
+      "updatedAt": "2026-05-16T13:27:55.646Z"
+    },
+    {
+      "id": "file-mp8dz5wrkc9ogh",
+      "boardId": "board-mp8dmf0prt1kif",
+      "parentId": null,
+      "name": "未命名策划案",
+      "type": "planning",
+      "content": "",
+      "sortOrder": 7,
+      "createdAt": "2026-05-16T13:32:53.547Z",
+      "updatedAt": "2026-05-16T13:32:53.547Z"
+    },
+    {
+      "id": "file-mp8e0rjzmqh9ab",
+      "boardId": "board-mp8dmf0prt1kif",
+      "parentId": null,
+      "name": "未命名策划案",
+      "type": "planning",
+      "content": "",
+      "sortOrder": 8,
+      "createdAt": "2026-05-16T13:34:08.255Z",
+      "updatedAt": "2026-05-16T13:34:08.255Z"
+    },
+    {
+      "id": "file-mp8e1qh16246na",
+      "boardId": "board-mp8dmf0prt1kif",
+      "parentId": null,
+      "name": "未命名策划案",
+      "type": "planning",
+      "content": "",
+      "sortOrder": 9,
+      "createdAt": "2026-05-16T13:34:53.510Z",
+      "updatedAt": "2026-05-16T13:34:53.510Z"
+    },
+    {
+      "id": "file-mp8e7h1chvmp7d",
+      "boardId": "board-mp8dmf0prt1kif",
+      "parentId": null,
+      "name": "未命名策划案",
+      "type": "planning",
+      "content": "",
+      "sortOrder": 10,
+      "createdAt": "2026-05-16T13:39:21.216Z",
+      "updatedAt": "2026-05-16T13:39:21.216Z"
+    },
+    {
+      "id": "file-mp8ed7opr9d0j7",
+      "boardId": "board-mp8dmf0prt1kif",
+      "parentId": null,
+      "name": "未命名策划案",
+      "type": "planning",
+      "content": "",
+      "sortOrder": 11,
+      "createdAt": "2026-05-16T13:43:49.033Z",
+      "updatedAt": "2026-05-16T13:43:49.033Z"
+    },
+    {
+      "id": "file-mp8edrzoo4t6pe",
+      "boardId": "board-mp8dmf0prt1kif",
+      "parentId": null,
+      "name": "未命名策划案",
+      "type": "planning",
+      "content": "",
+      "sortOrder": 12,
+      "createdAt": "2026-05-16T13:44:15.348Z",
+      "updatedAt": "2026-05-16T13:44:15.348Z"
     }
   ],
   "elements": [],
   "resources": [],
   "sessions": [
     {
-      "token": "mozugspy1tduu2mozugspyaqc0r9",
+      "token": "mp8d0597wel8x7mp8d0597euvmbi",
       "userId": "user-001"
     },
     {
-      "token": "mozv5mkmq0rp0umozv5mkmkouja3",
+      "token": "mp8dpy49dfsgt9mp8dpy49oyqkzt",
       "userId": "user-001"
     },
     {
-      "token": "mp2qa4z8bor1f2mp2qa4z8x712hr",
-      "userId": "user-001"
-    },
-    {
-      "token": "mp45a5ocxk7iermp45a5ocrewtc5",
-      "userId": "user-001"
-    },
-    {
-      "token": "mp63ashbzawwx4mp63ashbnhe7bx",
-      "userId": "user-001"
-    },
-    {
-      "token": "mp6wbc43xst3sump6wbc436hhuk6",
-      "userId": "user-001"
-    },
-    {
-      "token": "mp6wd363s569ehmp6wd363opcj1j",
-      "userId": "user-001"
-    },
-    {
-      "token": "mp6yevtujek7p6mp6yevtunhavhv",
-      "userId": "user-001"
-    },
-    {
-      "token": "mp6ypetbhdq4y8mp6ypetb1otpnp",
-      "userId": "user-001"
-    },
-    {
-      "token": "mp6zcchzosz767mp6zcchz0tg14k",
-      "userId": "user-001"
-    },
-    {
-      "token": "mp6zfravq9b1ldmp6zfravcez1j8",
+      "token": "mp8edhtllsnl14mp8edhtliejwfx",
       "userId": "user-001"
     }
   ]

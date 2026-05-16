@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useAppStore, type BoardFile } from '@/lib/store'
+import { apiFetch } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useCollaboration } from '@/hooks/use-collaboration'
@@ -533,7 +534,7 @@ export function PlanningEditor() {
 
       setSaving(true)
       try {
-        const res = await fetch('/api/boards/files', {
+        const res = await apiFetch('/api/boards/files', {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',

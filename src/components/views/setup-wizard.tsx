@@ -17,6 +17,7 @@ import { Switch } from '@/components/ui/switch'
 import { Loader2, Check, ChevronLeft, ChevronRight, Film, Globe, User, Palette, Mail, FileText, ShieldOff, Upload, X, Eye, EyeOff, Lock, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAppStore } from '@/lib/store'
+import { apiFetch } from '@/lib/api'
 import { IS_SERVER_VERSION } from '@/lib/env'
 
 interface SetupStep {
@@ -100,7 +101,7 @@ export function SetupWizard() {
   useEffect(() => {
     async function checkStatus() {
       try {
-        const res = await fetch('/api/setup/status')
+        const res = await apiFetch('/api/setup/status')
         if (res.ok) {
           const data = await res.json()
           if (data.installed) {
@@ -123,7 +124,7 @@ export function SetupWizard() {
 
   const saveStep = useCallback(async (stepId: string, data: Record<string, string>) => {
     try {
-      await fetch(`/api/setup/${stepId}`, {
+      await apiFetch(`/api/setup/${stepId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -275,7 +276,7 @@ export function SetupWizard() {
       }
       await saveStep(currentStep.id, filteredData)
 
-      const res = await fetch('/api/setup/complete', { method: 'POST' })
+      const res = await apiFetch('/api/setup/complete', { method: 'POST' })
       if (!res.ok) {
         setError('安装完成失败，请重试')
         return
@@ -296,7 +297,7 @@ export function SetupWizard() {
     setResetLoading(true)
     setResetError(null)
     try {
-      const res = await fetch('/api/setup/reset', {
+      const res = await apiFetch('/api/setup/reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: resetPassword }),

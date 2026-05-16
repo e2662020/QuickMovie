@@ -2,6 +2,7 @@
 
 import { useState, useRef, useMemo } from 'react'
 import { cn } from '@/lib/utils'
+import { apiFetch } from '@/lib/api'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -165,7 +166,7 @@ export function IconPicker({ value, onChange, size = 'md', className }: IconPick
       const formData = new FormData()
       formData.append('file', file)
       
-      const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData })
+      const uploadRes = await apiFetch('/api/upload', { method: 'POST', body: formData })
       const uploadData = await uploadRes.json()
 
       if (!uploadRes.ok) {

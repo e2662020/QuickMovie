@@ -1,4 +1,4 @@
-import { defineConfig, type Plugin, type ViteDevServer } from 'vite'
+import { defineConfig, type Plugin, type ViteDevServer, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
@@ -605,9 +605,59 @@ function mockAPIPlugin(): Plugin {
       return j({})
     }
 
+    // ── Site Config ──
+    if (path === '/api/site-config' && method === 'GET') {
+      return j({
+        appName: '快分镜',
+        appVersion: '0.3.0',
+        allowRegistration: true,
+        defaultLanguage: 'zh-CN',
+      })
+    }
+
+    // ── Health Check ──
+    if (path === '/api/health' && method === 'GET') {
+      return j({ status: 'ok', timestamp: new Date().toISOString() })
+    }
+
+    // ── Privacy Policy ──
+    if (path === '/api/privacy' && method === 'GET') {
+      return j({
+        version: '1.0',
+        content: `# 隐私政策
+
+## 信息收集
+
+我们收集您主动提供的信息，包括：
+- 注册信息（邮箱、用户名）
+- 团队和项目数据
+
+## 数据使用
+
+您的数据仅用于：
+- 提供协作功能
+- 改善用户体验
+
+## 数据存储
+
+所有数据存储在您选择的服务器上。
+
+## 联系我们
+
+如有疑问，请联系管理员。`,
+        required: true,
+        acceptedAt: null,
+      })
+    }
+    if (path === '/api/privacy' && method === 'POST') {
+      return j({ success: true, acceptedAt: new Date().toISOString() })
+    }
+
     // ── Setup Wizard ──
+    // In dev mode (client), always return installed to bypass setup wizard
+    // Server version uses real database to track setup status
     if (path === '/api/setup/status' && method === 'GET') {
-      return j({ installed: false })
+      return j({ installed: true })
     }
     if (path === '/api/setup/config' && method === 'GET') {
       return j({})
@@ -774,33 +824,38 @@ function mockAPIPlugin(): Plugin {
   }
 }
 
-export default defineConfig({
-  plugins: [
-    tailwindcss(),
-    ...(process.env.NODE_ENV === 'development' ? [mockAPIPlugin()] : []),
-    react(),
-  ],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
-  server: {
-    port: 3000,
-    historyApiFallback: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-      },
-      '/uploads': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  const isClientMode = env.VITE_BUILD_TARGET === 'client'
+
+  return {
+    plugins: [
+      tailwindcss(),
+      ...(process.env.NODE_ENV === 'development' && !isClientMode ? [mockAPIPlugin()] : []),
+      react(),
+    ],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
       },
     },
-  },
-  build: {
-    outDir: 'dist',
-    sourcemap: false,
-  },
+    server: {
+      port: isClientMode ? 4000 : 3000,
+      historyApiFallback: true,
+      proxy: {
+        '/api': {
+          target: 'http://localhost:3001',
+          changeOrigin: true,
+        },
+        '/uploads': {
+          target: 'http://localhost:3001',
+          changeOrigin: true,
+        },
+      },
+    },
+    build: {
+      outDir: 'dist',
+      sourcemap: false,
+    },
+  }
 })

@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAppStore } from '@/lib/store'
+import { useAppStore, addSavedServer } from '@/lib/store'
+import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -25,8 +26,10 @@ export function AuthView() {
     setToken,
     setTeams,
     setView,
+    setAppMode,
     redirectAfterLogin,
     setRedirectAfterLogin,
+    serverConfig,
   } = useAppStore()
 
   const isLogin = currentView === 'login'
@@ -114,7 +117,7 @@ export function AuthView() {
 
     setLoading(true)
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await apiFetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: loginEmail, password: loginPassword }),
@@ -128,6 +131,15 @@ export function AuthView() {
 
       setUser(data.user)
       setToken(data.token)
+
+      // Save token to server config for auto-login
+      if (serverConfig?.serverUrl && serverConfig?.serverName) {
+        addSavedServer(serverConfig.serverUrl, serverConfig.serverName, data.token)
+        // Ensure appMode is remote when connected and logged in
+        if (serverConfig.connectionStatus === 'connected') {
+          setAppMode('remote')
+        }
+      }
 
       // Load teams
       await loadTeams(data.token)
@@ -153,7 +165,7 @@ export function AuthView() {
 
     setLoading(true)
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await apiFetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -171,6 +183,14 @@ export function AuthView() {
 
       setUser(data.user)
       setToken(data.token)
+
+      // Save token to server config for auto-login
+      if (serverConfig?.serverUrl && serverConfig?.serverName) {
+        addSavedServer(serverConfig.serverUrl, serverConfig.serverName, data.token)
+        if (serverConfig.connectionStatus === 'connected') {
+          setAppMode('remote')
+        }
+      }
 
       // Load teams
       await loadTeams(data.token)
@@ -191,7 +211,7 @@ export function AuthView() {
 
   async function loadTeams(token: string) {
     try {
-      const res = await fetch('/api/teams', {
+      const res = await apiFetch('/api/teams', {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) {

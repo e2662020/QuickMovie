@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useAppStore } from '@/lib/store'
+import { apiFetch } from '@/lib/api'
 import { toast } from 'sonner'
 import { useCollaboration } from '@/hooks/use-collaboration'
 import { Button } from '@/components/ui/button'
@@ -296,7 +297,7 @@ export function NoteEditor() {
 
       try {
         const data: NoteData = { columns }
-        const res = await fetch('/api/boards/files', {
+        const res = await apiFetch('/api/boards/files', {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',

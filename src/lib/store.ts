@@ -1,4 +1,8 @@
 import { create } from 'zustand'
+import { IS_SERVER_VERSION } from '@/lib/env'
+import { apiFetch } from '@/lib/api'
+
+export const PERSONAL_TEAM_ID = 'personal'
 
 export interface User {
   id: string
@@ -16,6 +20,7 @@ export interface Team {
   ownerId: string
   role: string
   memberCount?: number
+  isPersonal?: boolean
 }
 
 export interface BoardFile {
@@ -122,6 +127,7 @@ interface AppState {
 
   appMode: AppMode
   serverConfig: ServerConfig | null
+  savedServers: SavedServer[]
   pendingSyncActions: PendingSyncAction[]
   lastSyncTimestamp: number | null
 
@@ -151,6 +157,9 @@ interface AppState {
   setServerConfig: (config: ServerConfig | null) => void
   connectServer: (url: string, name: string) => Promise<void>
   disconnectServer: () => void
+  loadSavedServers: () => void
+  switchServer: (serverId: string) => Promise<void>
+
   addPendingSyncAction: (action: Omit<PendingSyncAction, 'id' | 'timestamp'>) => void
   clearPendingSyncActions: () => void
   syncPendingActions: () => Promise<void>
@@ -159,6 +168,42 @@ interface AppState {
 }
 
 const STORAGE_KEY = 'quickmovie-offline-data'
+const PERSONAL_BOARDS_KEY = 'quickmovie-personal-boards'
+const SAVED_SERVERS_KEY = 'quickmovie-saved-servers'
+
+export interface SavedServer {
+  id: string
+  url: string
+  name: string
+  encryptedToken?: string
+  lastConnected?: string
+  isLastUsed?: boolean
+}
+
+const ENCRYPTION_KEY = 'QM-Secure-Key-2024'
+
+const simpleEncrypt = (text: string): string => {
+  let result = ''
+  for (let i = 0; i < text.length; i++) {
+    const charCode = text.charCodeAt(i) ^ ENCRYPTION_KEY.charCodeAt(i % ENCRYPTION_KEY.length)
+    result += String.fromCharCode(charCode)
+  }
+  return btoa(encodeURIComponent(result))
+}
+
+const simpleDecrypt = (encoded: string): string => {
+  try {
+    const decoded = atob(encoded)
+    let result = ''
+    for (let i = 0; i < decoded.length; i++) {
+      const charCode = decoded.charCodeAt(i) ^ ENCRYPTION_KEY.charCodeAt(i % ENCRYPTION_KEY.length)
+      result += String.fromCharCode(charCode)
+    }
+    return decodeURIComponent(result)
+  } catch {
+    return ''
+  }
+}
 
 const loadOfflineData = () => {
   try {
@@ -173,6 +218,86 @@ const saveOfflineData = (data: Partial<AppState>) => {
     const existing = loadOfflineData() || {}
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...existing, ...data }))
   } catch {}
+}
+
+export const loadPersonalBoards = (): DirectorBoard[] => {
+  try {
+    const raw = localStorage.getItem(PERSONAL_BOARDS_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return []
+}
+
+export const savePersonalBoards = (boards: DirectorBoard[]) => {
+  try {
+    localStorage.setItem(PERSONAL_BOARDS_KEY, JSON.stringify(boards))
+  } catch {}
+}
+
+export const getPersonalTeam = (userName?: string): Team => ({
+  id: PERSONAL_TEAM_ID,
+  name: '个人工作区',
+  icon: '🎬',
+  inviteCode: '',
+  ownerId: 'personal',
+  role: 'owner',
+  memberCount: 1,
+  isPersonal: true,
+})
+
+export const loadSavedServers = (): SavedServer[] => {
+  try {
+    const raw = localStorage.getItem(SAVED_SERVERS_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return []
+}
+
+const saveSavedServers = (servers: SavedServer[]) => {
+  try {
+    localStorage.setItem(SAVED_SERVERS_KEY, JSON.stringify(servers))
+  } catch {}
+}
+
+export const addSavedServer = (url: string, name: string, token?: string): SavedServer[] => {
+  const servers = loadSavedServers()
+  servers.forEach(s => { s.isLastUsed = false })
+  
+  const existingIndex = servers.findIndex(s => s.url === url)
+  const newServer: SavedServer = {
+    id: existingIndex >= 0 ? servers[existingIndex].id : `server-${Date.now()}`,
+    url,
+    name,
+    encryptedToken: token ? simpleEncrypt(token) : undefined,
+    lastConnected: new Date().toISOString(),
+    isLastUsed: true,
+  }
+  
+  if (existingIndex >= 0) {
+    servers[existingIndex] = newServer
+  } else {
+    servers.push(newServer)
+  }
+  
+  saveSavedServers(servers)
+  return servers
+}
+
+export const removeSavedServer = (serverId: string): SavedServer[] => {
+  const servers = loadSavedServers().filter(s => s.id !== serverId)
+  saveSavedServers(servers)
+  return servers
+}
+
+export const getLastUsedServer = (): SavedServer | null => {
+  const servers = loadSavedServers()
+  return servers.find(s => s.isLastUsed) || null
+}
+
+export const getDecryptedToken = (server: SavedServer): string | null => {
+  if (!server.encryptedToken) return null
+  const decrypted = simpleDecrypt(server.encryptedToken)
+  return decrypted || null
 }
 
 export const useAppStore = create<AppState>()((set, get) => ({
@@ -202,8 +327,9 @@ export const useAppStore = create<AppState>()((set, get) => ({
   deletedFiles: [],
   deletedFilesTimeout: null,
 
-  appMode: 'offline',
+  appMode: IS_SERVER_VERSION ? 'remote' : 'offline',
   serverConfig: null,
+  savedServers: typeof window !== 'undefined' ? loadSavedServers() : [],
   pendingSyncActions: [],
   lastSyncTimestamp: null,
 
@@ -292,7 +418,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
     })
 
     try {
-      const response = await fetch(`${url}/api/health`)
+      const healthUrl = `${url}/api/health`
+      const response = await fetch(healthUrl)
       if (!response.ok) throw new Error('Server unreachable')
 
       set({
@@ -303,6 +430,7 @@ export const useAppStore = create<AppState>()((set, get) => ({
           authToken: null,
           connectionStatus: 'connected',
         },
+        savedServers: addSavedServer(url, name),
       })
       try { localStorage.setItem('quickmovie-app-mode', 'remote') } catch {}
     } catch {
@@ -323,6 +451,39 @@ export const useAppStore = create<AppState>()((set, get) => ({
       serverConfig: null,
     })
     try { localStorage.setItem('quickmovie-app-mode', 'offline') } catch {}
+  },
+
+  loadSavedServers: () => {
+    const servers = loadSavedServers()
+    set({ savedServers: servers })
+  },
+
+  switchServer: async (serverId) => {
+    const servers = get().savedServers
+    const targetServer = servers.find(s => s.id === serverId)
+    if (!targetServer) return
+
+    await get().connectServer(targetServer.url, targetServer.name)
+
+    const token = getDecryptedToken(targetServer)
+    if (token) {
+      try {
+        const res = await apiFetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.user && data.token) {
+            addSavedServer(targetServer.url, targetServer.name, data.token)
+            set({ user: data.user, token: data.token })
+          }
+        }
+      } catch {
+        // Auto-login failed, user needs to login manually
+      }
+    }
   },
 
   addPendingSyncAction: (action) => {

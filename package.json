@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:client": "vite --mode development.client",
     "build": "tsc -b && vite build && node scripts/build-check.js",
     "build:check": "node scripts/build-check.js",
     "preview": "vite preview",
