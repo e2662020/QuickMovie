@@ -87,6 +87,46 @@ const viewToPath: Record<AppView, string> = {
   setup: '/setup',
 }
 
+function applySetupConfig() {
+  try {
+    const raw = localStorage.getItem('quickmovie-setup-config')
+    if (raw) {
+      const config = JSON.parse(raw)
+      if (config.brand_site_name) {
+        document.title = config.brand_site_name
+      }
+      if (config.brand_icon) {
+        const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+        if (link) link.href = config.brand_icon
+      }
+    }
+  } catch {}
+  fetch('/api/setup/config').then(res => {
+    if (res.ok) {
+      return res.json()
+    }
+  }).then(config => {
+    if (config) {
+      localStorage.setItem('quickmovie-setup-config', JSON.stringify(config))
+      if (config.brand_site_name) {
+        document.title = config.brand_site_name
+      }
+      if (config.brand_icon) {
+        const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+        if (link) link.href = config.brand_icon
+      }
+    }
+  }).catch(() => {})
+}
+
+export function getSetupConfig(): Record<string, string> | null {
+  try {
+    const raw = localStorage.getItem('quickmovie-setup-config')
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return null
+}
+
 function MainContent() {
   const { currentView, currentBoard, setUser, setView, setTeams, setCurrentBoard, setCurrentFile, setBoardFiles, setInviteCode } = useAppStore()
   const [loading, setLoading] = useState(true)
@@ -121,12 +161,14 @@ function MainContent() {
           }
           if (path === '/setup') {
             setView('landing')
+            window.history.replaceState(null, '/', '/')
             setLoading(false)
             return
           }
+          applySetupConfig()
         }
       } catch {
-        // ignore setup check errors
+        applySetupConfig()
       }
 
       try {
@@ -221,7 +263,7 @@ function MainContent() {
       case 'invite':
         return <InviteView />
       case 'setup':
-        return <SetupWizard />
+        return <SetupGuard />
       default:
         return <LandingView />
     }
@@ -260,6 +302,53 @@ function FirstLaunchGuard({ children }: { children: React.ReactNode }) {
     return <ServerSelect />
   }
   return <>{children}</>
+}
+
+function SetupGuard() {
+  const { setUser, setView } = useAppStore()
+  const [checking, setChecking] = useState(true)
+
+  useEffect(() => {
+    async function guard() {
+      try {
+        const res = await fetch('/api/setup/status')
+        if (res.ok) {
+          const data = await res.json()
+          if (data.installed) {
+            const authRes = await fetch('/api/auth/me')
+            if (authRes.ok) {
+              const authData = await authRes.json()
+              if (authData.user && authData.user.roles?.includes('admin')) {
+                setUser(authData.user)
+                setChecking(false)
+                return
+              }
+            }
+            setView('landing')
+            window.history.replaceState(null, '/', '/')
+            return
+          }
+        }
+      } catch {
+        // ignore
+      }
+      setChecking(false)
+    }
+    guard()
+  }, [setUser, setView])
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">正在验证访问权限...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return <SetupWizard />
 }
 
 export default function App() {

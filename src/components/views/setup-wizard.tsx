@@ -104,6 +104,17 @@ export function SetupWizard() {
         if (res.ok) {
           const data = await res.json()
           if (data.installed) {
+            const authRes = await fetch('/api/auth/me')
+            if (authRes.ok) {
+              const authData = await authRes.json()
+              if (!authData.user || !authData.user.roles?.includes('admin')) {
+                setView('landing')
+                return
+              }
+            } else {
+              setView('landing')
+              return
+            }
             setWizardStep('installed')
             return
           }
@@ -265,7 +276,6 @@ export function SetupWizard() {
     setLoading(true)
     setError(null)
     try {
-      // Save all remaining unsaved data
       const currentStep = STEPS[stepIndex]
       const data = stepData[currentStep.id as keyof StepData]
       const filteredData: Record<string, string> = {}
@@ -280,6 +290,20 @@ export function SetupWizard() {
         setError('安装完成失败，请重试')
         return
       }
+
+      try {
+        const configRes = await fetch('/api/setup/config')
+        if (configRes.ok) {
+          const config = await configRes.json()
+          localStorage.setItem('quickmovie-setup-config', JSON.stringify(config))
+          if (config.brand_site_name) {
+            document.title = config.brand_site_name
+          }
+        }
+      } catch {
+        // ignore config cache error
+      }
+
       setWizardStep('complete')
     } catch {
       setError('网络错误，请稍后重试')
@@ -358,7 +382,7 @@ export function SetupWizard() {
     )
   }
 
-  // ─── Already installed state ───
+  // ─── Already installed state (admin only) ───
   if (wizardStep === 'installed') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4">
@@ -368,8 +392,8 @@ export function SetupWizard() {
               <div className="mx-auto w-16 h-16 rounded-2xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
                 <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
               </div>
-              <CardTitle className="text-2xl">系统已安装</CardTitle>
-              <CardDescription>快分镜已完成初始化配置</CardDescription>
+              <CardTitle className="text-2xl">系统已初始化</CardTitle>
+              <CardDescription>快分镜已完成安装配置，正常运行中</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Button
@@ -379,22 +403,35 @@ export function SetupWizard() {
                 前往登录
               </Button>
 
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">管理员操作</span>
+                </div>
+              </div>
+
               {!showReset ? (
                 <Button
-                  variant="ghost"
-                  className="w-full text-muted-foreground"
+                  variant="outline"
+                  className="w-full text-muted-foreground border-destructive/30 hover:border-destructive/50 hover:text-destructive"
                   onClick={() => setShowReset(true)}
                 >
                   <ShieldOff className="h-4 w-4 mr-2" />
-                  重置安装
+                  重置系统安装
                 </Button>
               ) : (
                 <div className="space-y-3 pt-2 border-t animate-fade-in-up">
-                  <p className="text-sm text-muted-foreground">输入管理员密码以重置系统</p>
+                  <Alert variant="destructive">
+                    <AlertDescription>
+                      ⚠️ 重置将清空所有数据（用户、设置、会话），此操作不可撤销！
+                    </AlertDescription>
+                  </Alert>
                   <div className="space-y-2">
                     <Input
                       type="password"
-                      placeholder="管理员密码"
+                      placeholder="输入管理员密码确认"
                       value={resetPassword}
                       onChange={(e) => { setResetPassword(e.target.value); setResetError(null) }}
                       onKeyDown={(e) => e.key === 'Enter' && handleReset()}

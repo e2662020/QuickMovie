@@ -4,10 +4,6 @@ import { getDb } from '../db.js'
 const SETUP_EXEMPT_PREFIXES = ['/api/setup', '/uploads', '/api/auth/login', '/api/auth/register']
 
 export function setupMiddleware(req: Request, res: Response, next: NextFunction) {
-  if (req.path === '/setup') {
-    return next()
-  }
-
   for (const prefix of SETUP_EXEMPT_PREFIXES) {
     if (req.path.startsWith(prefix)) {
       return next()
@@ -22,6 +18,10 @@ export function setupMiddleware(req: Request, res: Response, next: NextFunction)
       return res.status(503).json({ error: 'Server not initialized', redirect: '/setup' })
     }
     return res.redirect('/setup')
+  }
+
+  if (req.path === '/setup') {
+    return res.redirect('/')
   }
 
   next()
