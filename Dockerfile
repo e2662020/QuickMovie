@@ -13,7 +13,7 @@ WORKDIR /app/server
 COPY server/package*.json ./
 RUN npm ci
 COPY server/ .
-RUN npx tsc
+RUN npm run build
 
 # Stage 3: Production image
 FROM node:22-alpine
